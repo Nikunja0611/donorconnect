@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Add this import
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../widgets/custom_text_field.dart';
 
@@ -28,15 +28,21 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
       _errorMessage = '';
     });
-
+    
     if (_formKey.currentState!.validate()) {
       try {
         final authService = Provider.of<AuthService>(context, listen: false);
+        
+        // Attempt sign in
         await authService.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
-        // Navigation is handled by the AuthWrapper
+        
+        // If sign in is successful, navigate to home page
+        // Replace the current route so the user can't go back to login
+        Navigator.pushReplacementNamed(context, '/home_screen');
+        
       } catch (e) {
         setState(() {
           if (e is FirebaseAuthException) {
@@ -57,20 +63,25 @@ class _LoginScreenState extends State<LoginScreen> {
                 _errorMessage = 'Authentication failed: ${e.message}';
             }
           } else {
-            _errorMessage = 'An error occurred. Please try again later.';
+            _errorMessage = 'Login failed: ${e.toString()}';
             print('Login error: $e');
           }
         });
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
       }
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
     }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Rest of the widget implementation remains the same
     return Scaffold(
       backgroundColor: Color(0xFFF8ECF1),
       body: SafeArea(
