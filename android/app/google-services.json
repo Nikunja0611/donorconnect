@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "27076661024",
+    "project_id": "donorconnect-eebbc",
+    "storage_bucket": "donorconnect-eebbc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:27076661024:android:737f21defb50b05ba9d145",
+        "android_client_info": {
+          "package_name": "com.example.donorconnect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRNydTrMd4AkurBM8qjhR4JDP1SAmlMT0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
