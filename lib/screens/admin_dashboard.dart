@@ -49,79 +49,100 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
     Navigator.pushReplacementNamed(context, '/admin_login');
   }
 
+  
   @override
   Widget build(BuildContext context) {
-    // Using the same color theme as admin login screen
-    final primaryColor = Theme.of(context).primaryColor;
+    // Check if user is authenticated and is admin
+    final User? currentUser = FirebaseAuth.instance.currentUser;
     
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: primaryColor,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Admin Dashboard'),
-            if (!isLoading)
-              Text(
-                adminName,
-                style: TextStyle(fontSize: 14),
-              ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: _signOut,
+    if (currentUser == null) {
+      // Not authenticated, redirect to login
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacementNamed(context, '/admin_login');
+      });
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    // Verify admin status
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(currentUser.uid).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        
+        if (!snapshot.hasData || snapshot.data == null || 
+            !(snapshot.data!.data() as Map<String, dynamic>)['isAdmin']) {
+          // Not an admin, redirect to login
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Admin access required')),
+            );
+            Navigator.pushReplacementNamed(context, '/admin_login');
+          });
+          return Scaffold(body: Center(child: Text('Admin access required')));
+        }
+        
+        // User is authenticated and is admin - show original dashboard
+        final primaryColor = Theme.of(context).primaryColor;
+        
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: primaryColor,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Admin Dashboard'),
+                if (!isLoading) Text(adminName, style: TextStyle(fontSize: 14)),
+              ],
+            ),
+            actions: [
+              IconButton(icon: Icon(Icons.logout), onPressed: _signOut),
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              indicatorColor: Colors.white,
+              tabs: [
+                Tab(text: 'Blood Donations', icon: Icon(Icons.favorite)),
+                Tab(text: 'Medical Help', icon: Icon(Icons.medical_services)),
+                Tab(text: 'Fundraising', icon: Icon(Icons.attach_money)),
+                Tab(text: 'Users', icon: Icon(Icons.people)),
+              ],
+            ),
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          tabs: [
-            Tab(text: 'Blood Donations', icon: Icon(Icons.favorite)),
-            Tab(text: 'Medical Help', icon: Icon(Icons.medical_services)),
-            Tab(text: 'Fundraising', icon: Icon(Icons.attach_money)),
-            Tab(text: 'Users', icon: Icon(Icons.people)),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          BloodDonationsTab(),
-          MedicalHelpTab(),
-          FundraisingTab(),
-          UsersTab(),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: primaryColor,
-        child: Icon(Icons.add),
-        onPressed: () {
-          // Show action based on current tab
-          final currentTab = _tabController.index;
-          String action = "";
-          
-          switch(currentTab) {
-            case 0:
-              action = "Add New Blood Donation";
-              break;
-            case 1:
-              action = "Add Medical Help Request";
-              break;
-            case 2:
-              action = "Create Fundraising Campaign";
-              break;
-            case 3:
-              action = "Add New User";
-              break;
-          }
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Action: $action')),
-          );
-        },
-      ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              BloodDonationsTab(),
+              MedicalHelpTab(),
+              FundraisingTab(),
+              UsersTab(),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            backgroundColor: primaryColor,
+            child: Icon(Icons.add),
+            onPressed: () {
+              // Show action based on current tab
+              final currentTab = _tabController.index;
+              String action = "";
+              
+              switch(currentTab) {
+                case 0: action = "Add New Blood Donation"; break;
+                case 1: action = "Add Medical Help Request"; break;
+                case 2: action = "Create Fundraising Campaign"; break;
+                case 3: action = "Add New User"; break;
+              }
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Action: $action')),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
