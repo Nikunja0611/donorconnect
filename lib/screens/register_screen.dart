@@ -20,7 +20,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   String _errorMessage = '';
+  String _passwordStrengthMessage = '';
+  Color _passwordStrengthColor = Colors.grey;
 
   final List<String> _bloodGroups = [
     'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
@@ -110,6 +114,95 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  void _checkPasswordStrength(String password) {
+    setState(() {
+      if (password.isEmpty) {
+        _passwordStrengthMessage = '';
+        _passwordStrengthColor = Colors.grey;
+        return;
+      }
+
+      bool hasUppercase = password.contains(RegExp(r'[A-Z]'));
+      bool hasLowercase = password.contains(RegExp(r'[a-z]'));
+      bool hasDigit = password.contains(RegExp(r'[0-9]'));
+      bool hasSpecialChar = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+      bool hasMinLength = password.length >= 8;
+
+      int strength = 0;
+      if (hasUppercase) strength++;
+      if (hasLowercase) strength++;
+      if (hasDigit) strength++;
+      if (hasSpecialChar) strength++;
+      if (hasMinLength) strength++;
+
+      if (strength <= 2) {
+        _passwordStrengthMessage = 'Weak password';
+        _passwordStrengthColor = Colors.red;
+      } else if (strength == 3) {
+        _passwordStrengthMessage = 'Moderate password';
+        _passwordStrengthColor = Colors.orange;
+      } else if (strength == 4) {
+        _passwordStrengthMessage = 'Strong password';
+        _passwordStrengthColor = Colors.green;
+      } else {
+        _passwordStrengthMessage = 'Very strong password';
+        _passwordStrengthColor = Colors.green.shade700;
+      }
+    });
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Column(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Color(0xFF4CAF50),
+                size: 60,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Registration Successful!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Your account has been created successfully. Please login to continue.',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              child: Text(
+                'LOG IN',
+                style: TextStyle(
+                  color: Color(0xFFC14465),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Go back to login page
+              },
+            ),
+          ],
+          actionsAlignment: MainAxisAlignment.center,
+        );
+      },
+    );
+  }
+
   Future<void> _register() async {
     setState(() {
       _isLoading = true;
@@ -128,7 +221,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           dob: _dobController.text.trim(),
           bloodGroup: _bloodGroupController.text.trim(),
         );
-        // AuthWrapper handles navigation
+        
+        // Show success dialog and then navigate to login page
+        _showSuccessDialog();
       } catch (e) {
         setState(() {
           if (e.toString().contains('email-already-in-use')) {
@@ -240,24 +335,110 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         (value == null || value.isEmpty) ? 'Please select your blood group' : null,
                   ),
                   SizedBox(height: 15),
-                  CustomTextField(
-                    hintText: "Password",
-                    icon: Icons.lock,
-                    obscureText: true,
+                  // Password field with eye icon
+                  TextFormField(
                     controller: _passwordController,
+                    obscureText: _obscurePassword,
                     keyboardType: TextInputType.visiblePassword,
+                    onChanged: _checkPasswordStrength,
+                    decoration: InputDecoration(
+                      hintText: "Password",
+                      prefixIcon: Icon(Icons.lock, color: Color(0xFFC14465)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: Color(0xFFC14465),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: EdgeInsets.symmetric(vertical: 15),
+                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Please enter a password';
-                      if (value.length < 6) return 'Password must be at least 6 characters';
+                      if (value.length < 8) return 'Password must be at least 8 characters';
+                      if (!value.contains(RegExp(r'[A-Z]'))) 
+                        return 'Password must contain at least one uppercase letter';
+                      if (!value.contains(RegExp(r'[a-z]'))) 
+                        return 'Password must contain at least one lowercase letter';
+                      if (!value.contains(RegExp(r'[0-9]'))) 
+                        return 'Password must contain at least one number';
+                      if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) 
+                        return 'Password must contain at least one special character';
                       return null;
                     },
                   ),
+                  if (_passwordStrengthMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 5.0, left: 12.0),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _passwordStrengthMessage,
+                          style: TextStyle(color: _passwordStrengthColor, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: 5),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12.0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Password must contain:',
+                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('• At least 8 characters', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text('• At least one uppercase letter (A-Z)', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text('• At least one lowercase letter (a-z)', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text('• At least one number (0-9)', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text('• At least one special character (!@#\$%^&*)', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                      ],
+                    ),
+                  ),
                   SizedBox(height: 15),
-                  CustomTextField(
-                    hintText: "Confirm Password",
-                    icon: Icons.lock_outline,
-                    obscureText: true,
+                  // Confirm Password field with eye icon
+                  TextFormField(
                     controller: _confirmPasswordController,
+                    obscureText: _obscureConfirmPassword,
+                    decoration: InputDecoration(
+                      hintText: "Confirm Password",
+                      prefixIcon: Icon(Icons.lock_outline, color: Color(0xFFC14465)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                          color: Color(0xFFC14465),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: EdgeInsets.symmetric(vertical: 15),
+                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Please confirm your password';
                       if (value != _passwordController.text) return 'Passwords do not match';

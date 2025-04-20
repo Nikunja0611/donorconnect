@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Add Firebase Auth import
+import 'package:firebase_auth/firebase_auth.dart';
 import 'services/auth_service.dart';
 import 'services/donation_service.dart';
 import 'screens/login_screen.dart';
@@ -16,6 +16,8 @@ import 'screens/about_us_page.dart';
 import 'screens/donor_connect.dart';
 import 'screens/welcome_user.dart';
 import 'screens/donation_history_page.dart';
+import 'screens/admin_login_screen.dart'; // Import admin login screen
+import 'screens/admin_dashboard.dart'; // Import admin dashboard
 import 'firebase_options.dart';
 
 void main() async {
@@ -85,6 +87,8 @@ class MyApp extends StatelessWidget {
           '/donor_connect_page': (context) => DonorConnectPage(),
           '/welcome_user': (context) => WelcomeUserPage(),
           '/donation_history_page': (context) => DonationHistoryPage(),
+          '/admin_login': (context) => AdminLoginScreen(), // Added admin login route
+          '/admin_dashboard': (context) => AdminDashboard(), // Added admin dashboard route
         },
         onUnknownRoute: (settings) {
           return MaterialPageRoute(
@@ -101,7 +105,6 @@ class MyApp extends StatelessWidget {
 class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Directly use Firebase Auth instead of authService.user
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {

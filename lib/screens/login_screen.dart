@@ -81,9 +81,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Rest of the widget implementation remains the same
     return Scaffold(
       backgroundColor: Color(0xFFF8ECF1),
+      appBar: AppBar(
+        backgroundColor: Color(0xFFD95373),
+        elevation: 0,
+        title: Text(
+          'User Login',
+          style: TextStyle(color: Colors.white),
+        ),
+        actions: [
+          // Admin login button - kept only in app bar
+          TextButton.icon(
+            onPressed: () {
+              Navigator.pushNamed(context, '/admin_login');
+            },
+            icon: Icon(Icons.admin_panel_settings, color: Colors.white),
+            label: Text(
+              'Admin',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -138,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 10),
                     Align(
-                      alignment: Alignment.centerRight,
+                      alignment: Alignment.centerLeft,
                       child: TextButton(
                         onPressed: () {
                           _showForgotPasswordDialog(context);

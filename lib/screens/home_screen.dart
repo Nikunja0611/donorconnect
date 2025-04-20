@@ -14,6 +14,7 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   String userName = "User";
   bool isLoading = true;
+  bool isAdmin = false;
 
   final List<String> images = [
     'assets/images/blood_donation.jpg',
@@ -55,6 +56,7 @@ class _HomePageState extends State<HomePage> {
     if (userData != null && userData.containsKey('name')) {
       setState(() {
         userName = userData['name'];
+        isAdmin = userData['isAdmin'] == true;
         isLoading = false;
       });
     } else {
@@ -111,6 +113,16 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           actions: [
+            // Admin dashboard button (shows only for admins)
+            if (isAdmin)
+              IconButton(
+                icon: const Icon(Icons.dashboard),
+                tooltip: 'Admin Dashboard',
+                onPressed: () {
+                  Navigator.pushNamed(context, '/admin_dashboard');
+                },
+              ),
+            // Removed the admin login button from here
             IconButton(
               icon: const Icon(Icons.person),
               onPressed: () {
