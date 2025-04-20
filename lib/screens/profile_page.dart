@@ -247,11 +247,263 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showEditProfileDialog() {
-    // This would open a dialog or navigate to an edit profile screen
-    // Implementation depends on your app's design
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Edit profile functionality coming soon!")),
+    // Create controllers with current values
+    final nameController = TextEditingController(text: _userData!['name']);
+    final phoneController = TextEditingController(text: _userData!['phone']);
+    final addressController = TextEditingController(text: _userData!['address']);
+    final dobController = TextEditingController(text: _userData!['dob']);
+    final bloodGroupController = TextEditingController(text: _userData!['bloodGroup']);
+    
+    // Available blood group options
+    final bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    String selectedBloodGroup = _userData!['bloodGroup'];
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Edit Profile', 
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFC14465),
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Name',
+                      prefixIcon: Icon(Icons.person, color: Color(0xFFC14465)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Color(0xFFC14465),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  TextField(
+                    controller: phoneController,
+                    decoration: InputDecoration(
+                      labelText: 'Phone',
+                      prefixIcon: Icon(Icons.phone, color: Color(0xFFC14465)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Color(0xFFC14465),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  SizedBox(height: 16),
+                  TextField(
+                    controller: addressController,
+                    decoration: InputDecoration(
+                      labelText: 'Address',
+                      prefixIcon: Icon(Icons.location_on, color: Color(0xFFC14465)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Color(0xFFC14465),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    maxLines: 2,
+                  ),
+                  SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: () async {
+                      final DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: _parseDate(_userData!['dob']),
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime.now(),
+                        builder: (context, child) {
+                          return Theme(
+                            data: ThemeData.light().copyWith(
+                              colorScheme: ColorScheme.light(
+                                primary: Color(0xFFC14465),
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      
+                      if (pickedDate != null) {
+                        dobController.text = '${pickedDate.day}/${pickedDate.month}/${pickedDate.year}';
+                      }
+                    },
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: dobController,
+                        decoration: InputDecoration(
+                          labelText: 'Date of Birth',
+                          prefixIcon: Icon(Icons.calendar_today, color: Color(0xFFC14465)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Color(0xFFC14465),
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedBloodGroup,
+                    decoration: InputDecoration(
+                      labelText: 'Blood Group',
+                      prefixIcon: Icon(Icons.water_drop, color: Color(0xFFC14465)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Color(0xFFC14465),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    items: bloodGroups.map((String bloodGroup) {
+                      return DropdownMenuItem<String>(
+                        value: bloodGroup,
+                        child: Text(bloodGroup),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          selectedBloodGroup = newValue;
+                          bloodGroupController.text = newValue;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: () => _updateProfile(
+                  nameController.text,
+                  phoneController.text,
+                  addressController.text,
+                  dobController.text,
+                  bloodGroupController.text,
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFFC14465),
+                ),
+                child: Text('Save Changes'),
+              ),
+            ],
+          );
+        },
+      ),
     );
+  }
+
+  DateTime _parseDate(String date) {
+    try {
+      final parts = date.split('/');
+      if (parts.length == 3) {
+        return DateTime(
+          int.parse(parts[2]), // year
+          int.parse(parts[1]), // month
+          int.parse(parts[0]), // day
+        );
+      }
+    } catch (e) {
+      print('Error parsing date: $e');
+    }
+    return DateTime.now(); // Fallback to current date
+  }
+
+  Future<void> _updateProfile(
+    String name,
+    String phone,
+    String address,  
+    String dob,
+    String bloodGroup,
+  ) async {
+    if (name.isEmpty || phone.isEmpty || address.isEmpty || dob.isEmpty || bloodGroup.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("All fields are required")),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isLoading = true);
+      
+      final authService = Provider.of<AuthService>(context, listen: false);
+      
+      final updatedData = {
+        'name': name,
+        'phone': phone,
+        'address': address,
+        'dob': dob,
+        'bloodGroup': bloodGroup,
+      };
+      
+      await authService.updateUserProfile(updatedData);
+      
+      // Update local data
+      setState(() {
+        _userData = {
+          ..._userData!,
+          ...updatedData,
+        };
+        _isLoading = false;
+      });
+      
+      Navigator.pop(context); // Close the dialog
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Profile updated successfully"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      print('Error updating profile: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error updating profile: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showSignOutDialog() {

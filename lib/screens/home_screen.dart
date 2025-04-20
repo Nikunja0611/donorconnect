@@ -43,6 +43,28 @@ class _HomePageState extends State<HomePage> {
     },
   ];
 
+  // Added achievements list from first home screen
+  final List<Map<String, dynamic>> achievements = [
+    {
+      'title': 'Community Excellence Award',
+      'description': 'Recognized for outstanding community service',
+      'image': 'assets/images/award_1.jpg',
+      'year': '2024'
+    },
+    {
+      'title': '10,000 Lives Saved',
+      'description': 'Blood donations helped save over 10,000 lives',
+      'image': 'assets/images/achievement_1.jpg',
+      'year': '2023'
+    },
+    {
+      'title': 'National Recognition',
+      'description': 'Awarded by Ministry of Health for exceptional service',
+      'image': 'assets/images/award_2.jpg',
+      'year': '2022'
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -101,14 +123,18 @@ class _HomePageState extends State<HomePage> {
           title: Column(
             children: [
               const Text(
-                'Raktapurak Charitable Foundation',
+                'RAKTPURAK CHARITABLE FOUNDATION',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 28,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               if (!isLoading)
                 Text(
                   'Welcome, $userName',
-                  style: const TextStyle(fontSize: 14),
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
                 ),
             ],
           ),
@@ -122,7 +148,6 @@ class _HomePageState extends State<HomePage> {
                   Navigator.pushNamed(context, '/admin_dashboard');
                 },
               ),
-            // Removed the admin login button from here
             IconButton(
               icon: const Icon(Icons.person),
               onPressed: () {
@@ -198,7 +223,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   const Text(
                     'A Peek into Our Motive',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: Colors.deepPurple, fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   TextButton(
                     onPressed: () {
@@ -255,7 +280,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   const Text(
                     'Featured Events',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: Colors.deepPurple, fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 10),
                   ImageSlideshow(
@@ -346,7 +371,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   const Text(
                     'Upcoming Events',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: Colors.deepPurple, fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   Container(
                     height: 1,
@@ -414,6 +439,138 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
+            
+            // Added Achievements Section from first home screen
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Our Achievements',
+                        style: TextStyle(color: Colors.deepPurple, fontSize: 18, fontWeight: FontWeight.w600),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          // Navigate to detailed achievements page
+                          // Navigator.pushNamed(context, '/achievements_page');
+                        },
+                        child: Text(
+                          'View All',
+                          style: TextStyle(color: Colors.pink[400]),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    height: 1,
+                    color: Colors.grey[300],
+                    margin: const EdgeInsets.only(top: 4, bottom: 12),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Added Achievements Cards from first home screen
+            SizedBox(
+              height: 220,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: achievements.length,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                itemBuilder: (context, index) {
+                  final achievement = achievements[index];
+                  return Container(
+                    width: 200,
+                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.2),
+                          spreadRadius: 1,
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Achievement image
+                        ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
+                          child: Image.asset(
+                            achievement['image'],
+                            height: 110,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        // Achievement details
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                achievement['title'],
+                                style: TextStyle(
+                                  color: Colors.pink[700],
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                achievement['description'],
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[800],
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.pink[50],
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  achievement['year'],
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.pink[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            
+            // Bottom padding
+            const SizedBox(height: 16),
           ],
         ),
       ),
