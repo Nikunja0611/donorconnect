@@ -5,19 +5,52 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class AboutUsPage extends StatelessWidget {
   const AboutUsPage({Key? key}) : super(key: key);
 
+  // Helper method to launch URLs with better error handling and fallback options
+  Future<void> _launchURL(BuildContext context, String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      // Try to launch with external application mode first
+      if (!await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      )) {
+        // Try alternative launch mode if first attempt fails
+        if (!await launchUrl(
+          url,
+          mode: LaunchMode.platformDefault,
+        )) {
+          // Show error message if both attempts fail
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Could not open $urlString')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ABOUT US', textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 28,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),),
+        title: const Text(
+          'ABOUT US',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: const Color(0xFFE63946),
       ),
-      drawer: buildDrawer(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -216,6 +249,17 @@ class AboutUsPage extends StatelessWidget {
   }
 
   Widget buildContactUsSection(BuildContext context) {
+    // Multiple URL options for better compatibility
+    // Web URLs
+    final String facebookUrl = 'https://m.facebook.com/raktpurak';
+    final String linkedinUrl = 'https://linkedin.com/company/raktpurak';
+    final String whatsappUrl = 'https://api.whatsapp.com/send?phone=911234567890';
+    
+    // App-specific URLs (fallbacks)
+    final String facebookAppUrl = 'fb://page/raktpurak';
+    final String linkedinAppUrl = 'linkedin://company/raktpurak';
+    final String whatsappAppUrl = 'whatsapp://send?phone=911234567890';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -254,39 +298,66 @@ class AboutUsPage extends StatelessWidget {
                 context: context,
                 icon: FontAwesomeIcons.facebook,
                 color: const Color(0xFF1877F2),
-                url: 'https://facebook.com/raktpurak',
-                label: 'Facebook',
+                url: facebookUrl,
+                appUrl: facebookAppUrl,
               ),
               buildSocialIcon(
                 context: context,
                 icon: FontAwesomeIcons.linkedin,
                 color: const Color(0xFF0A66C2),
-                url: 'https://linkedin.com/company/raktpurak',
-                label: 'LinkedIn',
+                url: linkedinUrl,
+                appUrl: linkedinAppUrl,
               ),
               buildSocialIcon(
                 context: context,
                 icon: FontAwesomeIcons.whatsapp,
                 color: const Color(0xFF25D366),
-                url: 'https://wa.me/1234567890',
-                label: 'WhatsApp',
+                url: whatsappUrl,
+                appUrl: whatsappAppUrl,
               ),
             ],
           ),
           const SizedBox(height: 20),
-          const Text(
-            "Email: info@raktpurak.org",
-            style: TextStyle(fontSize: 16),
+          GestureDetector(
+            onTap: () => _launchURL(context, 'mailto:info@raktpurak.org'),
+            child: const Row(
+              children: [
+                Icon(Icons.email, color: Color(0xFF1D3557)),
+                SizedBox(width: 8),
+                Text(
+                  "Email: info@raktpurak.org",
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
-          const Text(
-            "Phone: +91 1234567890",
-            style: TextStyle(fontSize: 16),
+          GestureDetector(
+            onTap: () => _launchURL(context, 'tel:+911234567890'),
+            child: const Row(
+              children: [
+                Icon(Icons.phone, color: Color(0xFF1D3557)),
+                SizedBox(width: 8),
+                Text(
+                  "Phone: +91 1234567890",
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
-          const Text(
-            "Address: 123 Charity Road, Mumbai, India",
-            style: TextStyle(fontSize: 16),
+          GestureDetector(
+            onTap: () => _launchURL(context, 'https://maps.google.com/?q=123+Charity+Road,+Mumbai,+India'),
+            child: const Row(
+              children: [
+                Icon(Icons.location_on, color: Color(0xFF1D3557)),
+                SizedBox(width: 8),
+                Text(
+                  "Address: 123 Charity Road, Mumbai, India",
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -298,10 +369,22 @@ class AboutUsPage extends StatelessWidget {
     required IconData icon,
     required Color color,
     required String url,
-    required String label,
+    required String appUrl,
   }) {
     return InkWell(
       onTap: () async {
+        // Try app-specific URL first
+        try {
+          final appUri = Uri.parse(appUrl);
+          if (await canLaunchUrl(appUri)) {
+            await launchUrl(appUri);
+            return;
+          }
+        } catch (e) {
+          // Silent catch - will try web URL next
+        }
+
+        // Fall back to web URL
         _launchURL(context, url);
       },
       child: Container(
@@ -319,73 +402,9 @@ class AboutUsPage extends StatelessWidget {
     );
   }
 
-  Future<void> _launchURL(BuildContext context, String urlString) async {
-    try {
-      final Uri url = Uri.parse(urlString);
-      if (!await launchUrl(
-        url,
-        mode: LaunchMode.externalApplication,
-      )) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $urlString')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error launching URL: $e')),
-      );
-    }
-  }
-
-  Widget buildDrawer(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFFE63946)),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  'Raktpurak Charitable Foundation',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'Donate Blood, Save Lives',
-                  style: TextStyle(color: Colors.white, fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text('Home'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/home_screen');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.bloodtype),
-            title: const Text('Blood Bank'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/blood_bank_page');
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget buildBottomNavigationBar(BuildContext context) {
     return BottomNavigationBar(
-      currentIndex: 4, // Profile/About Us page
+      currentIndex: 0,
       selectedItemColor: Colors.pink[700],
       unselectedItemColor: Colors.pink[300],
       type: BottomNavigationBarType.fixed,
@@ -395,16 +414,15 @@ class AboutUsPage extends StatelessWidget {
             Navigator.pushReplacementNamed(context, '/home_screen');
             break;
           case 1:
-            Navigator.pushReplacementNamed(context, '/medical_help_page');
-            break;
-          case 2:
             Navigator.pushReplacementNamed(context, '/blood_bank_page');
             break;
-          case 3:
+          case 2:
             Navigator.pushReplacementNamed(context, '/fundraising_page');
             break;
+          case 3:
+            Navigator.pushReplacementNamed(context, '/medical_help_page');
+            break;
           case 4:
-            // Current page, do nothing
             break;
         }
       },
