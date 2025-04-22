@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DonorConnectPage extends StatefulWidget {
   const DonorConnectPage({Key? key}) : super(key: key);
@@ -13,6 +15,9 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
   String selectedDistrict = 'All';
   String selectedCity = 'All';
   List<Donor> filteredDonors = [];
+  bool isLoading = false;
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final List<String> bloodGroups = [
     'All',
@@ -148,216 +153,193 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
     'Punjab': ['All', 'Amritsar']
   };
 
-  List<Donor> allDonors = [
-    Donor(
-        name: 'Ranjan Hegde',
-        bloodGroup: 'O+',
-        phone: '9856458426',
-        state: 'Maharashtra',
-        district: 'Mumbai',
-        city: 'Mumbai',
-        available: true),
-    Donor(
-        name: 'Atul More',
-        bloodGroup: 'A+',
-        phone: '8956458478',
-        state: 'Maharashtra',
-        district: 'Pune',
-        city: 'Pune',
-        available: true),
-    Donor(
-        name: 'Shobha Menon',
-        bloodGroup: 'B-',
-        phone: '7896458468',
-        state: 'Karnataka',
-        district: 'Bangalore',
-        city: 'Bangalore',
-        available: true),
-    Donor(
-        name: 'Virat Shukla',
-        bloodGroup: 'AB+',
-        phone: '8856458499',
-        state: 'Gujarat',
-        district: 'Ahmedabad',
-        city: 'Ahmedabad',
-        available: true),
-    Donor(
-        name: 'Rahul Sharma',
-        bloodGroup: 'A-',
-        phone: '9875643210',
-        state: 'Delhi',
-        district: 'New Delhi',
-        city: 'New Delhi',
-        available: true),
-    Donor(
-        name: 'Priya Singh',
-        bloodGroup: 'O-',
-        phone: '7765432109',
-        state: 'Uttar Pradesh',
-        district: 'Lucknow',
-        city: 'Lucknow',
-        available: false),
-    Donor(
-        name: 'Aarav Patel',
-        bloodGroup: 'B+',
-        phone: '8867543210',
-        state: 'Gujarat',
-        district: 'Surat',
-        city: 'Surat',
-        available: true),
-    Donor(
-        name: 'Neha Gupta',
-        bloodGroup: 'AB-',
-        phone: '9987654321',
-        state: 'Maharashtra',
-        district: 'Nagpur',
-        city: 'Nagpur',
-        available: true),
-    Donor(
-        name: 'Vikram Desai',
-        bloodGroup: 'O+',
-        phone: '7789654321',
-        state: 'Karnataka',
-        district: 'Mysore',
-        city: 'Mysore',
-        available: true),
-    Donor(
-        name: 'Ananya Reddy',
-        bloodGroup: 'A+',
-        phone: '8876543219',
-        state: 'Telangana',
-        district: 'Hyderabad',
-        city: 'Hyderabad',
-        available: true),
-    Donor(
-        name: 'Rajesh Kumar',
-        bloodGroup: 'B+',
-        phone: '9765432180',
-        state: 'Tamil Nadu',
-        district: 'Chennai',
-        city: 'Chennai',
-        available: true),
-    Donor(
-        name: 'Meera Joshi',
-        bloodGroup: 'AB+',
-        phone: '8867543290',
-        state: 'Maharashtra',
-        district: 'Pune',
-        city: 'Pune',
-        available: false),
-    Donor(
-        name: 'Arjun Nair',
-        bloodGroup: 'O-',
-        phone: '7754321098',
-        state: 'Kerala',
-        district: 'Trivandrum',
-        city: 'Trivandrum',
-        available: true),
-    Donor(
-        name: 'Kavita Mehta',
-        bloodGroup: 'A-',
-        phone: '9876543217',
-        state: 'Rajasthan',
-        district: 'Jaipur',
-        city: 'Jaipur',
-        available: true),
-    Donor(
-        name: 'Suresh Iyer',
-        bloodGroup: 'B-',
-        phone: '8865432178',
-        state: 'Tamil Nadu',
-        district: 'Coimbatore',
-        city: 'Coimbatore',
-        available: true),
-    Donor(
-        name: 'Divya Malhotra',
-        bloodGroup: 'AB-',
-        phone: '7798765432',
-        state: 'Punjab',
-        district: 'Amritsar',
-        city: 'Amritsar',
-        available: true),
-    Donor(
-        name: 'Amit Shah',
-        bloodGroup: 'O+',
-        phone: '9987654329',
-        state: 'Gujarat',
-        district: 'Vadodara',
-        city: 'Vadodara',
-        available: true),
-    Donor(
-        name: 'Pooja Verma',
-        bloodGroup: 'A+',
-        phone: '8876543218',
-        state: 'Uttar Pradesh',
-        district: 'Kanpur',
-        city: 'Kanpur',
-        available: false),
-    Donor(
-        name: 'Kiran Rao',
-        bloodGroup: 'B+',
-        phone: '7765432187',
-        state: 'West Bengal',
-        district: 'Kolkata',
-        city: 'Kolkata',
-        available: true),
-    Donor(
-        name: 'Sandeep Khanna',
-        bloodGroup: 'AB+',
-        phone: '9876543216',
-        state: 'Maharashtra',
-        district: 'Thane',
-        city: 'Thane',
-        available: true),
-  ];
-
   @override
   void initState() {
     super.initState();
-    filteredDonors = List.from(allDonors);
+    fetchDonors();
   }
 
-  // Navigation method for bottom navigation bar
-  void _navigateToPage(int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/home_screen');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/medical_help_page');
-        break;
-      case 2:
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, '/fundraising_page');
-        break;
-      case 4:
-        Navigator.pushReplacementNamed(context, '/profile_page');
-        break;
-    }
-  }
+  Future<void> fetchDonors() async {
+    setState(() {
+      isLoading = true;
+    });
 
-  List<String> getDistrictsForState(String state) {
-    if (districts.containsKey(state)) {
-      return districts[state]!;
-    } else {
-      return ['All'];
+    try {
+      // Make sure to only fetch donors who have explicit isDonor = true
+      QuerySnapshot userSnapshot = await _firestore
+          .collection('users')
+          .where('isDonor', isEqualTo: true)
+          .get();
+
+      List<Donor> donorList = [];
+      for (var doc in userSnapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        // Debug - Print the entire user document to check fields
+        print("Donor data retrieved: ${doc.id}");
+        print(data);
+        
+        // Add better conditional checks to ensure we have all required fields
+        if (data.containsKey('name') && data.containsKey('bloodGroup')) {
+          donorList.add(Donor(
+            id: doc.id,
+            name: data['name'] ?? 'Anonymous Donor',
+            bloodGroup: data['bloodGroup'] ?? '',
+            phone: data['phone'] ?? '',
+            state: data['state'] ?? '',
+            district: data['district'] ?? '',
+            city: data['city'] ?? '',
+            available: data['isAvailable'] ?? false,
+          ));
+        }
+      }
+
+      setState(() {
+        filteredDonors = donorList;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching donors: $e");
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
   void filterDonors() {
-    setState(() {
-      filteredDonors = allDonors.where((donor) {
-        bool bloodGroupMatch = selectedBloodGroup == 'All' ||
-            donor.bloodGroup == selectedBloodGroup;
-        bool stateMatch =
-            selectedState == 'All' || donor.state == selectedState;
-        bool districtMatch =
-            selectedDistrict == 'All' || donor.district == selectedDistrict;
+  setState(() {
+    isLoading = true;
+  });
 
-        return bloodGroupMatch && stateMatch && districtMatch;
-      }).toList();
+  try {
+    // Start with the base query
+    Query usersRef = _firestore.collection('users').where('isDonor', isEqualTo: true);
+
+    // Add blood group filter if selected
+    if (selectedBloodGroup != 'All') {
+      usersRef = usersRef.where('bloodGroup', isEqualTo: selectedBloodGroup);
+    }
+    
+    // Add state filter if selected
+    if (selectedState != 'All') {
+      usersRef = usersRef.where('state', isEqualTo: selectedState);
+    }
+
+    // Execute the query
+    usersRef.get().then((querySnapshot) {
+      List<Donor> donors = [];
+      
+      print("Query returned ${querySnapshot.docs.length} documents");
+      
+      for (var doc in querySnapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        // Debug - print each document
+        print("Processing donor: ${doc.id}");
+        print(data);
+        
+        // Filter by district client-side if needed
+        bool districtMatch = selectedDistrict == 'All' || 
+                          (data['district'] != null && data['district'] == selectedDistrict);
+        
+        if (districtMatch) {
+          donors.add(Donor(
+            id: doc.id,
+            name: data['name'] ?? 'Anonymous Donor',
+            bloodGroup: data['bloodGroup'] ?? '',
+            phone: data['phone'] ?? '',
+            state: data['state'] ?? '',
+            district: data['district'] ?? '',
+            city: data['city'] ?? '',
+            available: data['isAvailable'] ?? false,
+          ));
+        }
+      }
+      
+      setState(() {
+        filteredDonors = donors;
+        isLoading = false;
+      });
+    }).catchError((error) {
+      print("Error executing query: $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error searching donors: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        isLoading = false;
+      });
     });
+  } catch (e) {
+    print("Exception in filterDonors: $e");
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+  void _showReportDialog(BuildContext context, Donor donor) {
+    final TextEditingController _reportController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Report Donor'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Please provide a reason for reporting this donor:'),
+            SizedBox(height: 16),
+            TextField(
+              controller: _reportController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Enter reason for report',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFC14465),
+            ),
+            onPressed: () {
+              // Submit report to Firestore
+              _firestore.collection('reports').add({
+                'donorId': donor.id,
+                'donorName': donor.name,
+                'reportReason': _reportController.text,
+                'reportedAt': FieldValue.serverTimestamp(),
+              }).then((_) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Report submitted successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }).catchError((error) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to submit report: $error'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              });
+            },
+            child: Text('Submit'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -421,7 +403,6 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
                         (value) {
                           setState(() {
                             selectedBloodGroup = value!;
-                            filterDonors();
                           });
                         },
                       ),
@@ -436,7 +417,6 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
                           setState(() {
                             selectedState = value!;
                             selectedDistrict = 'All';
-                            filterDonors();
                           });
                         },
                       ),
@@ -454,7 +434,6 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
                         (value) {
                           setState(() {
                             selectedDistrict = value!;
-                            filterDonors();
                           });
                         },
                       ),
@@ -476,26 +455,33 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
               ],
             ),
           ),
-          SizedBox(height: 16),
           Expanded(
-            child: filteredDonors.isEmpty
-                ? Center(
-                    child: Text(
-                      'No donors found. Try different criteria.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF3D3366),
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: filteredDonors.length,
-                    itemBuilder: (context, index) {
-                      final donor = filteredDonors[index];
-                      return DonorCard(donor: donor);
-                    },
-                  ),
+            child: RefreshIndicator(
+              onRefresh: fetchDonors,
+              child: isLoading
+                  ? Center(child: CircularProgressIndicator(color: Color(0xFFC14465)))
+                  : filteredDonors.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No donors found. Try different criteria.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF3D3366),
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: filteredDonors.length,
+                          itemBuilder: (context, index) {
+                            final donor = filteredDonors[index];
+                            return DonorCard(
+                              donor: donor,
+                              onReport: () => _showReportDialog(context, donor),
+                            );
+                          },
+                        ),
+            ),
           ),
         ],
       ),
@@ -506,32 +492,31 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
         unselectedItemColor: Colors.pink[300],
         selectedLabelStyle:
             TextStyle(fontWeight: FontWeight.w600, color: Colors.pink[300]),
-        unselectedLabelStyle: TextStyle(
-            fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.6)),
+        unselectedLabelStyle:
+            TextStyle(fontWeight: FontWeight.w400, color: Colors.pink[300]),
         items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Colors.pink[300]),
+            icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.medical_services, color: Colors.pink[300]),
-            label: 'MedicalHelp',
+            icon: Icon(Icons.search),
+            label: 'Find Donors',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bloodtype, color: Colors.pink[300]),
-            label: 'BloodBank',
+            icon: Icon(Icons.volunteer_activism),
+            label: 'Donate',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.volunteer_activism, color: Colors.pink[300]),
-            label: 'Fundraising',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person, color: Colors.pink[300]),
+            icon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],
-        currentIndex: 2, // Blood Bank page
-        onTap: _navigateToPage,
+        currentIndex: 1, // Since this is the DonorConnect/Find Donors page
+        onTap: (index) {
+          // Navigation logic would go here
+          // This is where you would navigate to different pages based on index
+        },
       ),
     );
   }
@@ -545,41 +530,42 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
           label,
           style: TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: Color(0xFF3D3366),
           ),
         ),
-        SizedBox(height: 6),
+        SizedBox(height: 8),
         Container(
+          padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade300),
             borderRadius: BorderRadius.circular(4),
           ),
-          child: DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              border: InputBorder.none,
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              items: items.map((String item) {
+                return DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(item),
+                );
+              }).toList(),
+              onChanged: onChanged,
             ),
-            value: value,
-            isExpanded: true,
-            dropdownColor: Colors.white,
-            icon: Icon(Icons.arrow_drop_down, color: Color(0xFF3D3366)),
-            style: TextStyle(color: Color(0xFF3D3366), fontSize: 14),
-            onChanged: onChanged,
-            items: items.map<DropdownMenuItem<String>>((String item) {
-              return DropdownMenuItem<String>(
-                value: item,
-                child: Text(item),
-              );
-            }).toList(),
           ),
         ),
       ],
     );
   }
+
+  List<String> getDistrictsForState(String state) {
+    return districts.containsKey(state) ? districts[state]! : ['All'];
+  }
 }
 
 class Donor {
+  final String id;
   final String name;
   final String bloodGroup;
   final String phone;
@@ -589,6 +575,7 @@ class Donor {
   final bool available;
 
   Donor({
+    required this.id,
     required this.name,
     required this.bloodGroup,
     required this.phone,
@@ -601,80 +588,181 @@ class Donor {
 
 class DonorCard extends StatelessWidget {
   final Donor donor;
+  final VoidCallback onReport;
 
-  const DonorCard({Key? key, required this.donor}) : super(key: key);
+  const DonorCard({
+    Key? key, 
+    required this.donor,
+    required this.onReport,
+  }) : super(key: key);
+
+  String _getLocationString() {
+    // Debug print to see what location data we actually have
+    print("Location data for ${donor.name}:");
+    print("State: '${donor.state}'");
+    print("District: '${donor.district}'");
+    print("City: '${donor.city}'");
+    
+    // Create location string with the best available data
+    List<String> locationParts = [];
+    
+    if (donor.city.isNotEmpty && donor.city != 'null' && donor.city != 'undefined') {
+      locationParts.add(donor.city);
+    }
+    
+    if (donor.district.isNotEmpty && donor.district != 'All' && 
+        donor.district != 'null' && donor.district != 'undefined') {
+      locationParts.add(donor.district);
+    }
+    
+    if (donor.state.isNotEmpty && donor.state != 'All' && 
+        donor.state != 'null' && donor.state != 'undefined') {
+      locationParts.add(donor.state);
+    }
+    
+    // If all location fields are empty or invalid, show default message
+    if (locationParts.isEmpty) {
+      return "Location not specified";
+    }
+    
+    return locationParts.join(', ');
+  }
 
   @override
   Widget build(BuildContext context) {
+    final String locationString = _getLocationString();
+    
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  donor.name,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF3D3366),
+                Flexible(
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Color(0xFFC14465),
+                        child: Text(
+                          donor.bloodGroup,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              donor.name,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF3D3366),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 4),
+                            // Location Row with improved layout
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on_outlined,
+                                  size: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    locationString,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2, // Allow two lines for location
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: donor.available ? Colors.green : Colors.red,
-                    borderRadius: BorderRadius.circular(20),
+                    color: donor.available ? Colors.green[100] : Colors.grey[200],
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     donor.available ? 'Available' : 'Not Available',
                     style: TextStyle(
-                      color: Colors.white,
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      color: donor.available ? Colors.green[800] : Colors.grey[800],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.bloodtype, color: Color(0xFFC14465)),
-                SizedBox(width: 8),
-                Text(
-                  'Blood Group: ${donor.bloodGroup}',
-                  style: TextStyle(color: Color(0xFF3D3366)),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: Icon(Icons.message, color: Color(0xFF3D3366), size: 16),
+                    label: Text(
+                      'Message',
+                      style: TextStyle(color: Color(0xFF3D3366), fontSize: 12),
+                    ),
+                    onPressed: () {
+                      launchUrl(Uri.parse('sms:${donor.phone}'));
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Color(0xFF3D3366)),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    ),
+                  ),
                 ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.phone, color: Color(0xFFC14465)),
                 SizedBox(width: 8),
-                Text(
-                  donor.phone,
-                  style: TextStyle(color: Color(0xFF3D3366)),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.call, size: 16),
+                    label: Text('Call', style: TextStyle(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFFC14465),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    ),
+                    onPressed: () {
+                      launchUrl(Uri.parse('tel:${donor.phone}'));
+                    },
+                  ),
                 ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.location_on, color: Color(0xFFC14465)),
                 SizedBox(width: 8),
-                Text(
-                  '${donor.city}, ${donor.district}, ${donor.state}',
-                  style: TextStyle(color: Color(0xFF3D3366)),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: Icon(Icons.flag, color: Colors.red.shade700, size: 16),
+                    label: Text(
+                      'Report',
+                      style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                    ),
+                    onPressed: onReport,
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.red.shade700),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    ),
+                  ),
                 ),
               ],
             ),

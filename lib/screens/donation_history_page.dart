@@ -185,6 +185,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
     final location = data['location'] ?? '';
     final bloodBank = data['bloodBank'] ?? '';
     final amount = data['amount'] ?? 0.0;
+    final hasReceipt = data['receiptData'] != null && data['receiptData'].toString().isNotEmpty;
     
     return Container(
       margin: EdgeInsets.only(bottom: 16),
@@ -235,6 +236,20 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
               'Amount: ${amount.toString()} units',
               style: TextStyle(fontSize: 14),
             ),
+            if (hasReceipt)
+              Padding(
+                padding: const EdgeInsets.only(top: 5),
+                child: Row(
+                  children: [
+                    Icon(Icons.receipt, size: 14, color: Colors.green),
+                    SizedBox(width: 4),
+                    Text(
+                      'Receipt Available',
+                      style: TextStyle(fontSize: 12, color: Colors.green),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
         trailing: Column(
@@ -250,7 +265,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
             ),
             SizedBox(height: 5),
             GestureDetector(
-              onTap: () => _showDonationOptions(context, donation.id),
+              onTap: () => _showDonationOptions(context, donation.id, hasReceipt),
               child: Icon(
                 Icons.more_vert,
                 color: Colors.black54,
@@ -262,7 +277,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
     );
   }
   
-  void _showDonationOptions(BuildContext context, String donationId) {
+  void _showDonationOptions(BuildContext context, String donationId, bool hasReceipt) {
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -274,6 +289,15 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (hasReceipt)
+                ListTile(
+                  leading: Icon(Icons.visibility, color: Colors.blue),
+                  title: Text('View Receipt'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _viewReceipt(donationId);
+                  },
+                ),
               ListTile(
                 leading: Icon(Icons.edit, color: Colors.blue),
                 title: Text('Edit Donation'),
@@ -297,14 +321,205 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
     );
   }
   
+  void _viewReceipt(String donationId) async {
+    final donation = await _donationService.getDonationById(donationId);
+    final data = donation.data() as Map<String, dynamic>;
+    final receiptData = data['receiptData'];
+    
+    if (receiptData != null && receiptData.toString().isNotEmpty) {
+      // This would depend on how you're storing the receipt data
+      // If it's a base64 string, you could display it as an image
+      // If it's a URL or other data, handle accordingly
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Donation Receipt'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                // This implementation depends on how you store receipt data
+                // For example, if it's a string URL:
+                Text(
+                  'Receipt ID: ${donationId.substring(0, 8)}...',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Receipt data is stored in the database.',
+                  style: TextStyle(fontSize: 14),
+                ),
+                // If it's base64 encoded image data:
+                // Image.memory(base64Decode(receiptData)),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+  
   void _editDonation(String donationId) async {
     // Get donation data
     final donation = await _donationService.getDonationById(donationId);
     final data = donation.data() as Map<String, dynamic>;
     
-    // Show edit dialog with pre-filled data
-    // Implementation would be similar to _showAddDonationDialog
-    // but with pre-filled values
+    // Create controllers with pre-filled data
+    final _formKey = GlobalKey<FormState>();
+    final dateController = TextEditingController(text: data['date'] ?? '');
+    final locationController = TextEditingController(text: data['location'] ?? '');
+    final bloodBankController = TextEditingController(text: data['bloodBank'] ?? '');
+    final amountController = TextEditingController(text: (data['amount'] ?? 0.0).toString());
+    final notesController = TextEditingController(text: data['notes'] ?? '');
+    final receiptDataController = TextEditingController(text: data['receiptData'] ?? '');
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Donation'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: dateController,
+                  decoration: InputDecoration(
+                    labelText: 'Date',
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  readOnly: true,
+                  onTap: () async {
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: ColorScheme.light(
+                              primary: Color(0xFFC14465),
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    
+                    if (pickedDate != null) {
+                      dateController.text = DateFormat('dd/MM/yyyy').format(pickedDate);
+                    }
+                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Please enter date'
+                      : null,
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: locationController,
+                  decoration: InputDecoration(
+                    labelText: 'Location',
+                    suffixIcon: Icon(Icons.location_on),
+                  ),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Please enter location'
+                      : null,
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: bloodBankController,
+                  decoration: InputDecoration(
+                    labelText: 'Blood Bank/Hospital',
+                    suffixIcon: Icon(Icons.local_hospital),
+                  ),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Please enter blood bank name'
+                      : null,
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: amountController,
+                  decoration: InputDecoration(
+                    labelText: 'Amount (units)',
+                    suffixIcon: Icon(Icons.water_drop),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter amount';
+                    }
+                    if (double.tryParse(value) == null) {
+                      return 'Please enter a valid number';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: notesController,
+                  decoration: InputDecoration(
+                    labelText: 'Notes (Optional)',
+                    suffixIcon: Icon(Icons.note),
+                  ),
+                  maxLines: 3,
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: receiptDataController,
+                  decoration: InputDecoration(
+                    labelText: 'Receipt Info (Optional)',
+                    suffixIcon: Icon(Icons.receipt),
+                  ),
+                  maxLines: 1,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (_formKey.currentState!.validate()) {
+                try {
+                  await _donationService.updateDonation(donationId, {
+                    'date': dateController.text,
+                    'location': locationController.text,
+                    'bloodBank': bloodBankController.text,
+                    'amount': double.parse(amountController.text),
+                    'notes': notesController.text,
+                    'receiptData': receiptDataController.text,
+                  });
+                  
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Donation updated successfully')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error updating donation: $e')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFD95373),
+            ),
+            child: Text('Update'),
+          ),
+        ],
+      ),
+    );
   }
   
   void _confirmDeleteDonation(String donationId) {
@@ -343,6 +558,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
     final bloodBankController = TextEditingController();
     final amountController = TextEditingController();
     final notesController = TextEditingController();
+    final receiptDataController = TextEditingController();
     
     showDialog(
       context: context,
@@ -436,6 +652,15 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                   ),
                   maxLines: 3,
                 ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: receiptDataController,
+                  decoration: InputDecoration(
+                    labelText: 'Receipt Info (Optional)',
+                    suffixIcon: Icon(Icons.receipt),
+                  ),
+                  maxLines: 1,
+                ),
               ],
             ),
           ),
@@ -455,6 +680,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                     bloodBank: bloodBankController.text,
                     amount: double.parse(amountController.text),
                     notes: notesController.text,
+                    receiptData: receiptDataController.text.isNotEmpty ? receiptDataController.text : null,
                   );
                   
                   Navigator.pop(context);

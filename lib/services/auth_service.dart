@@ -61,6 +61,7 @@ class AuthService {
       'dob': dob,
       'bloodGroup': bloodGroup,
       'isAdmin': false, // Default user is not an admin
+      'isDonor': false, // Default user is not a donor
       'createdAt': FieldValue.serverTimestamp(),
     });
     
@@ -86,6 +87,7 @@ class AuthService {
       'email': email,
       'phone': phone,
       'isAdmin': true,
+      'isDonor': false, // Default user is not a donor
       'createdAt': FieldValue.serverTimestamp(),
     });
     
