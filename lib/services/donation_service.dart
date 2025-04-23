@@ -6,7 +6,9 @@ class DonationService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   
   // Get current user ID
-  String? get _userId => _auth.currentUser?.uid;
+  String? getUserId() {
+    return _auth.currentUser?.uid;
+  }
 
   // Reference to donations collection
   CollectionReference<Map<String, dynamic>> get _donationsRef {
@@ -15,13 +17,20 @@ class DonationService {
   
   // Reference to the user's donations sub-collection
   CollectionReference<Map<String, dynamic>> get _userDonationsRef {
-    if (_userId == null) {
-      throw Exception("User not authenticated");
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) {
+        print('User not authenticated when accessing _userDonationsRef');
+        throw Exception("User not authenticated");
+      }
+      return _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('donations');
+    } catch (e) {
+      print('Error getting _userDonationsRef: $e');
+      throw Exception("Error accessing donations: $e");
     }
-    return _firestore
-        .collection('users')
-        .doc(_userId)
-        .collection('donations');
   }
   
   // Add a new donation record
@@ -33,217 +42,226 @@ class DonationService {
     String? notes,
     String? receiptData, // This could be base64 encoded string or a URL if stored elsewhere
   }) async {
-    if (_userId == null) throw Exception("User not authenticated");
-    
-    // Get user data for donor information
-    DocumentSnapshot userDoc = await _firestore.collection('users').doc(_userId).get();
-    Map<String, dynamic> userData = {};
-    
-    if (userDoc.exists) {
-      userData = userDoc.data() as Map<String, dynamic>;
-    }
-    
-    // Create donation document
-    final donationData = {
-      'userId': _userId,
-      'userName': userData['name'] ?? 'Anonymous',
-      'bloodGroup': userData['bloodGroup'] ?? '',
-      'date': date,
-      'location': location,
-      'bloodBank': bloodBank,
-      'amount': amount,
-      'notes': notes,
-      'timestamp': FieldValue.serverTimestamp(),
-      'donorContact': userData['phone'] ?? '',
-      'state': userData['state'] ?? '',
-      'district': userData['district'] ?? '',
-      'city': userData['city'] ?? '',
-      'isAvailable': userData['isAvailable'] ?? false,
-      'receiptData': receiptData, // Store receipt data directly in Firestore
-    };
-    
-    // Add to global donations collection
-    DocumentReference globalDonationRef = await _donationsRef.add(donationData);
-    String globalDonationId = globalDonationRef.id;
-    
-    // Add to user's donations sub-collection with the same ID for reference
-    await _userDonationsRef.doc(globalDonationId).set(donationData);
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) {
+        print('User not authenticated when adding donation');
+        throw Exception("User not authenticated");
+      }
+      
+      // Get user data for donor information
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+      Map<String, dynamic> userData = {};
+      
+      if (userDoc.exists) {
+        userData = userDoc.data() as Map<String, dynamic>;
+      } else {
+        print('User document does not exist for user ID: $userId');
+      }
+      
+      // Create donation document
+      final donationData = {
+        'userId': userId,
+        'userName': userData['name'] ?? 'Anonymous',
+        'bloodGroup': userData['bloodGroup'] ?? '',
+        'date': date,
+        'location': location,
+        'bloodBank': bloodBank,
+        'amount': amount,
+        'notes': notes,
+        'timestamp': FieldValue.serverTimestamp(),
+        'donorContact': userData['phone'] ?? '',
+        'state': userData['state'] ?? '',
+        'district': userData['district'] ?? '',
+        'city': userData['city'] ?? '',
+        'isAvailable': userData['isAvailable'] ?? false,
+        'receiptData': receiptData, // Store receipt data directly in Firestore
+      };
+      
+      print('Adding donation with data: $donationData');
+      
+      // Add to global donations collection
+      DocumentReference globalDonationRef = await _donationsRef.add(donationData);
+      String globalDonationId = globalDonationRef.id;
+      
+      // Add to user's donations sub-collection with the same ID for reference
+      await _userDonationsRef.doc(globalDonationId).set(donationData);
 
-    // Update user's total donation statistics
-    await _updateUserDonationStats(amount);
+      // Update user's total donation statistics
+      await _updateUserDonationStats(amount);
+      
+      // Complete the addDonation method
+      print('Donation added successfully with ID: $globalDonationId');
+    } catch (e) {
+      print('Error adding donation: $e');
+      throw Exception('Failed to add donation: $e');
+    }
   }
   
   // Update user's donation statistics
   Future<void> _updateUserDonationStats(double amount) async {
-    if (_userId == null) return;
-    
-    DocumentReference userRef = _firestore.collection('users').doc(_userId);
-    
-    // Get current statistics
-    DocumentSnapshot userDoc = await userRef.get();
-    if (userDoc.exists) {
-      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-      
-      int totalDonations = (userData['totalDonations'] as num?)?.toInt() ?? 0;
-      double totalAmount = (userData['totalBloodDonated'] as num?)?.toDouble() ?? 0.0;
-      
-      // Update statistics
-      await userRef.update({
-        'totalDonations': totalDonations + 1,
-        'totalBloodDonated': totalAmount + amount,
-        'lastDonationDate': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-  
-  // Stream all donations for current user
-  Stream<QuerySnapshot<Map<String, dynamic>>> getUserDonations() {
-    return _userDonationsRef
-        .orderBy('timestamp', descending: true)
-        .snapshots();
-  }
-  
-  // Get all public donations
-  Stream<QuerySnapshot<Map<String, dynamic>>> getAllDonations() {
-    return _donationsRef
-        .orderBy('timestamp', descending: true)
-        .snapshots();
-  }
-  
-  // Filter donations by blood group
-  Stream<QuerySnapshot<Map<String, dynamic>>> getDonationsByBloodGroup(String bloodGroup) {
-    if (bloodGroup == 'All') {
-      return getAllDonations();
-    }
-    
-    return _donationsRef
-        .where('bloodGroup', isEqualTo: bloodGroup)
-        .orderBy('timestamp', descending: true)
-        .snapshots();
-  }
-  
-  // Get donation by ID
-  Future<DocumentSnapshot<Map<String, dynamic>>> getDonationById(String donationId) {
-    return _userDonationsRef.doc(donationId).get();
-  }
-  
-  // Update donation record
-  Future<void> updateDonation(String donationId, Map<String, dynamic> data) async {
-    // Get current donation to calculate difference in amount
-    DocumentSnapshot<Map<String, dynamic>> currentDonation = 
-        await _userDonationsRef.doc(donationId).get();
-    
-    double oldAmount = 0.0;
-    if (currentDonation.exists) {
-      oldAmount = (currentDonation.data()?['amount'] as num?)?.toDouble() ?? 0.0;
-    }
-    
-    // Update donation record in both collections
-    await _userDonationsRef.doc(donationId).update(data);
-    await _donationsRef.doc(donationId).update(data);
-    
-    // If amount changed, update user statistics
-    if (data.containsKey('amount')) {
-      double newAmount = (data['amount'] as num).toDouble();
-      double difference = newAmount - oldAmount;
-      
-      if (difference != 0) {
-        // Update user stats with the difference
-        await _updateUserDonationStatsAfterEdit(difference);
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) {
+        throw Exception("User not authenticated");
       }
+      
+      DocumentReference userRef = _firestore.collection('users').doc(userId);
+      DocumentSnapshot userDoc = await userRef.get();
+      
+      if (userDoc.exists) {
+        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+        
+        // Get current stats or initialize if they don't exist
+        int totalDonations = (userData['totalDonations'] is int) 
+            ? userData['totalDonations'] 
+            : 0;
+        double totalAmount = (userData['totalAmountDonated'] is num) 
+            ? (userData['totalAmountDonated'] as num).toDouble() 
+            : 0.0;
+        
+        // Update stats
+        await userRef.update({
+          'totalDonations': totalDonations + 1,
+          'totalAmountDonated': totalAmount + amount,
+          'lastDonationDate': FieldValue.serverTimestamp(),
+        });
+        
+        print('User donation stats updated successfully');
+      } else {
+        // Create user stats document if it doesn't exist
+        await userRef.set({
+          'totalDonations': 1,
+          'totalAmountDonated': amount,
+          'lastDonationDate': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        
+        print('User donation stats created successfully');
+      }
+    } catch (e) {
+      print('Error updating user donation stats: $e');
+      // We don't throw here to prevent the main donation operation from failing
     }
   }
   
-  // Update user statistics after editing donation
-  Future<void> _updateUserDonationStatsAfterEdit(double amountDifference) async {
-    if (_userId == null) return;
-    
-    DocumentReference userRef = _firestore.collection('users').doc(_userId);
-    
-    // Get current statistics
-    DocumentSnapshot userDoc = await userRef.get();
-    if (userDoc.exists) {
-      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+  // Get all donations for the current user
+  Stream<QuerySnapshot> getUserDonations() {
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) {
+        print('User not authenticated when getting donations');
+        throw Exception("User not authenticated");
+      }
       
-      double totalAmount = (userData['totalBloodDonated'] as num?)?.toDouble() ?? 0.0;
-      
-      // Update total blood donated
-      await userRef.update({
-        'totalBloodDonated': totalAmount + amountDifference,
-      });
+      return _userDonationsRef
+          .orderBy('timestamp', descending: true)
+          .snapshots();
+    } catch (e) {
+      print('Error getting user donations: $e');
+      throw Exception("Error getting donations: $e");
     }
   }
   
-  // Delete donation record
+  // Get a specific donation by ID
+  Future<DocumentSnapshot> getDonationById(String donationId) async {
+    try {
+      return await _userDonationsRef.doc(donationId).get();
+    } catch (e) {
+      print('Error getting donation by ID: $e');
+      throw Exception("Error retrieving donation: $e");
+    }
+  }
+  
+  // Update an existing donation
+  Future<void> updateDonation(String donationId, Map<String, dynamic> data) async {
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) {
+        print('User not authenticated when updating donation');
+        throw Exception("User not authenticated");
+      }
+      
+      // Update in user's collection
+      await _userDonationsRef.doc(donationId).update(data);
+      
+      // Update in global collection
+      await _donationsRef.doc(donationId).update(data);
+      
+      print('Donation updated successfully');
+    } catch (e) {
+      print('Error updating donation: $e');
+      throw Exception("Failed to update donation: $e");
+    }
+  }
+  
+  // Delete a donation
   Future<void> deleteDonation(String donationId) async {
-    // Get current donation to adjust statistics
-    DocumentSnapshot<Map<String, dynamic>> currentDonation = 
-        await _userDonationsRef.doc(donationId).get();
-    
-    double amount = 0.0;
-    if (currentDonation.exists) {
-      amount = (currentDonation.data()?['amount'] as num?)?.toDouble() ?? 0.0;
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) {
+        print('User not authenticated when deleting donation');
+        throw Exception("User not authenticated");
+      }
+      
+      // Get the donation amount before deleting to update user stats
+      DocumentSnapshot donationDoc = await _userDonationsRef.doc(donationId).get();
+      if (donationDoc.exists) {
+        final data = donationDoc.data() as Map<String, dynamic>;
+        final amount = (data['amount'] is num) ? (data['amount'] as num).toDouble() : 0.0;
+        
+        // Delete from user's collection
+        await _userDonationsRef.doc(donationId).delete();
+        
+        // Delete from global collection
+        await _donationsRef.doc(donationId).delete();
+        
+        // Update user stats
+        await _updateUserDonationStatsAfterDelete(amount);
+        
+        print('Donation deleted successfully');
+      } else {
+        print('Donation not found with ID: $donationId');
+        throw Exception("Donation not found");
+      }
+    } catch (e) {
+      print('Error deleting donation: $e');
+      throw Exception("Failed to delete donation: $e");
     }
-    
-    // Delete the donation from both collections
-    await _userDonationsRef.doc(donationId).delete();
-    await _donationsRef.doc(donationId).delete();
-    
-    // Update user statistics
-    await _updateUserDonationStatsAfterDelete(amount);
   }
   
-  // Update user statistics after deleting donation
+  // Update user stats after deletion
   Future<void> _updateUserDonationStatsAfterDelete(double amount) async {
-    if (_userId == null) return;
-    
-    DocumentReference userRef = _firestore.collection('users').doc(_userId);
-    
-    // Get current statistics
-    DocumentSnapshot userDoc = await userRef.get();
-    if (userDoc.exists) {
-      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) {
+        throw Exception("User not authenticated");
+      }
       
-      int totalDonations = (userData['totalDonations'] as num?)?.toInt() ?? 0;
-      double totalAmount = (userData['totalBloodDonated'] as num?)?.toDouble() ?? 0.0;
+      DocumentReference userRef = _firestore.collection('users').doc(userId);
+      DocumentSnapshot userDoc = await userRef.get();
       
-      // Update statistics
-      await userRef.update({
-        'totalDonations': totalDonations > 0 ? totalDonations - 1 : 0,
-        'totalBloodDonated': totalAmount - amount >= 0 ? totalAmount - amount : 0,
-      });
+      if (userDoc.exists) {
+        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+        
+        // Get current stats
+        int totalDonations = (userData['totalDonations'] is int) 
+            ? userData['totalDonations'] 
+            : 0;
+        double totalAmount = (userData['totalAmountDonated'] is num) 
+            ? (userData['totalAmountDonated'] as num).toDouble() 
+            : 0.0;
+        
+        // Update stats (ensure they don't go below zero)
+        await userRef.update({
+          'totalDonations': (totalDonations > 0) ? totalDonations - 1 : 0,
+          'totalAmountDonated': (totalAmount >= amount) ? totalAmount - amount : 0,
+        });
+        
+        print('User donation stats updated after deletion');
+      }
+    } catch (e) {
+      print('Error updating user stats after deletion: $e');
+      // Don't throw to prevent the main deletion operation from failing
     }
-  }
-  
-  // Get user's total donation statistics
-  Future<Map<String, dynamic>> getUserDonationStats() async {
-    if (_userId == null) {
-      return {
-        'totalDonations': 0,
-        'totalBloodDonated': 0.0,
-        'lastDonationDate': null,
-      };
-    }
-    
-    DocumentSnapshot userDoc = await _firestore
-        .collection('users')
-        .doc(_userId)
-        .get();
-    
-    if (userDoc.exists) {
-      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-      
-      return {
-        'totalDonations': userData['totalDonations'] ?? 0,
-        'totalBloodDonated': userData['totalBloodDonated'] ?? 0.0,
-        'lastDonationDate': userData['lastDonationDate'],
-      };
-    }
-    
-    return {
-      'totalDonations': 0,
-      'totalBloodDonated': 0.0,
-      'lastDonationDate': null,
-    };
   }
 }
