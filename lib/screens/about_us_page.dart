@@ -232,7 +232,7 @@ class AboutUsPage extends StatelessWidget {
           const SizedBox(height: 15),
           ElevatedButton(
             onPressed: () {
-              Navigator.pushNamed(context, '/fundraising');
+              Navigator.pushNamed(context, '/event_fund_page');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE63946),
@@ -252,13 +252,16 @@ class AboutUsPage extends StatelessWidget {
     // Multiple URL options for better compatibility
     // Web URLs
     final String facebookUrl = 'https://m.facebook.com/raktpurak';
-    final String linkedinUrl = 'https://linkedin.com/company/raktpurak';
-    final String whatsappUrl = 'https://api.whatsapp.com/send?phone=911234567890';
-    
+    final String linkedinUrl =
+        'https://in.linkedin.com/in/balraj-dhillon-a95719172';
+    final String whatsappUrl =
+        'https://api.whatsapp.com/send?phone=917607609777';
+
     // App-specific URLs (fallbacks)
     final String facebookAppUrl = 'fb://page/raktpurak';
-    final String linkedinAppUrl = 'linkedin://company/raktpurak';
-    final String whatsappAppUrl = 'whatsapp://send?phone=911234567890';
+    final String linkedinAppUrl =
+        'https://in.linkedin.com/in/balraj-dhillon-a95719172';
+    final String whatsappAppUrl = 'whatsapp://send?phone=917607609777';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -333,13 +336,13 @@ class AboutUsPage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           GestureDetector(
-            onTap: () => _launchURL(context, 'tel:+911234567890'),
+            onTap: () => _launchURL(context, 'tel:+917607609777'),
             child: const Row(
               children: [
                 Icon(Icons.phone, color: Color(0xFF1D3557)),
                 SizedBox(width: 8),
                 Text(
-                  "Phone: +91 1234567890",
+                  "Phone: +91 7607609777",
                   style: TextStyle(fontSize: 16),
                 ),
               ],
@@ -347,13 +350,14 @@ class AboutUsPage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           GestureDetector(
-            onTap: () => _launchURL(context, 'https://maps.google.com/?q=123+Charity+Road,+Mumbai,+India'),
+            onTap: () => _launchURL(context,
+                'https://www.google.com/maps/dir//C-1415,+Alamnagar,+Rajajipuram,+Lucknow,+Uttar+Pradesh+226017/@26.8424919,80.7830519,12z/data=!4m8!4m7!1m0!1m5!1m1!1s0x399bff718606e7f3:0x1f01e5442179bd1c!2m2!1d80.8654534!2d26.8425158?entry=ttu&g_ep=EgoyMDI1MDQyMy4wIKXMDSoASAFQAw%3D%3D'),
             child: const Row(
               children: [
                 Icon(Icons.location_on, color: Color(0xFF1D3557)),
                 SizedBox(width: 8),
                 Text(
-                  "Address: 123 Charity Road, Mumbai, India",
+                  "Address: C-1415, Alamnagar, \nRajajipuram, Lucknow, \nUttar Pradesh 226017",
                   style: TextStyle(fontSize: 16),
                 ),
               ],

@@ -14,10 +14,8 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
   List<String> selectedEquipments = [];
 
   final List<String> equipments = [
-    'Bipap Machines', 'Cpap Machines', 'Oxygen Concentrator',
-    'Oxygen Cylinder', 'Patient Beds', 'Portable Suction Machines',
-    'Air Mattress', 'NIV Mask', 'Wheel Chairs',
-    'Patient Monitor', 'Nebulizer', 'BP Machine',
+    'Bipap Machines', 'Oxygen Concentrator',
+    'Oxygen Cylinder', 'Patient Beds', 'Wheel Chairs',
   ];
 
   int _selectedIndex = 1;
@@ -320,21 +318,12 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
   }
 
   Widget _buildEquipmentGrid(double width) {
-    int crossAxisCount = width > 600 ? 3 : 2;
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        childAspectRatio: 3.5,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
-      itemCount: equipments.length,
-      itemBuilder: (context, index) {
-        final equipment = equipments[index];
-        final isSelected = selectedEquipments.contains(equipment);
-        return InkWell(
+  return Column(
+    children: equipments.map((equipment) {
+      final isSelected = selectedEquipments.contains(equipment);
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: InkWell(
           onTap: () {
             setState(() {
               if (isSelected) {
@@ -345,35 +334,53 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
             });
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: isSelected ? primaryColor.withOpacity(0.1) : Colors.white,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: isSelected ? primaryColor : Colors.grey.shade300, width: isSelected ? 2 : 1),
+              border: Border.all(
+                color: isSelected ? primaryColor : Colors.grey.shade300,
+                width: 1,
+              ),
             ),
             child: Row(
               children: [
-                Icon(isSelected ? Icons.check_circle : Icons.circle_outlined,
-                    color: isSelected ? primaryColor : Colors.grey, size: 18),
-                const SizedBox(width: 6),
+                Checkbox(
+                  value: isSelected,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      if (value == true) {
+                        selectedEquipments.add(equipment);
+                      } else {
+                        selectedEquipments.remove(equipment);
+                      }
+                    });
+                  },
+                  activeColor: primaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     equipment,
                     style: TextStyle(
+                      fontSize: 16,  // Increased font size
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                      fontSize: 13,
                       color: isSelected ? primaryColor : Colors.black87,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    }).toList(),
+  );
+}
 
   Widget _buildCard({required Widget child}) {
     return Container(

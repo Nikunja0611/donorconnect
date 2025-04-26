@@ -17,29 +17,29 @@ class _HomePageState extends State<HomePage> {
   bool isAdmin = false;
 
   final List<String> images = [
-    'assets/images/blood_donation.jpg',
-    'assets/images/donor_2.jpg',
-    'assets/images/blood_drive.jpg',
+    'assets/images/blood_donation.jpeg',
+    'assets/images/donor_2.jpeg',
+    'assets/images/award.jpeg',
   ];
 
   final List<Map<String, dynamic>> featuredEvents = [
     {
-      'title': 'World Blood Donor Day',
-      'image': 'assets/images/blood_drive.jpg',
+      'title': 'Blood bank initiative',
+      'image': 'assets/images/feature_1.jpeg',
       'date': 'June 14, 2025',
-      'location': 'City Community Center'
+      'location': 'Lucknow'
     },
     {
-      'title': 'Campus Blood Drive',
-      'image': 'assets/images/donor_2.jpg',
+      'title': 'Health Check Camp',
+      'image': 'assets/images/feature_2.jpeg',
       'date': 'May 10, 2025',
-      'location': 'University Campus'
+      'location': 'City Montessori School'
     },
     {
-      'title': 'Corporate Donation Camp',
-      'image': 'assets/images/blood_donation.jpg',
+      'title': 'Roti Bank Initiative',
+      'image': 'assets/images/feature_3.jpeg',
       'date': 'May 25, 2025',
-      'location': 'Tech Park'
+      'location': 'Lucknow'
     },
   ];
 
@@ -94,7 +94,7 @@ class _HomePageState extends State<HomePage> {
 
     switch (index) {
       case 0:
-        Navigator.pushNamed(context, '/home_screen');
+        Navigator.pushNamed(context, '/');
         break;
       case 1:
         Navigator.pushNamed(context, '/medical_help_page');
@@ -390,87 +390,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Upcoming Events
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Upcoming Events',
-                    style: TextStyle(
-                      color: Colors.deepPurple, 
-                      fontSize: subtitleFontSize,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Container(
-                    height: 1,
-                    color: Colors.grey[300],
-                    margin: const EdgeInsets.only(right: 16),
-                  ),
-                ],
-              ),
-            ),
 
-            // Hospital Event Card
-            GestureDetector(
-              child: Container(
-                margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
-                      spreadRadius: 1,
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        bottomLeft: Radius.circular(12),
-                      ),
-                      child: Image.asset(
-                        'assets/images/hospital.jpg',
-                        height: 100,
-                        width: screenSize.width * 0.3,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Hospital',
-                              style: TextStyle(
-                                color: Colors.pink[400],
-                                fontSize: subtitleFontSize,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              'Blood Donation Drive',
-                              style: TextStyle(fontSize: bodyFontSize),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
             // Added Achievements Section from first home screen
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),

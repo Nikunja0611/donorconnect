@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+// Remove qr_flutter import since we won't need it anymore
 import '../services/firestore_service.dart';
 
 class EventFundPage extends StatelessWidget {
@@ -15,12 +15,11 @@ class EventFundPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFFD44C6D),
         title: Text('Fundraising Campaign',
-                          textAlign: TextAlign.center,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     height: 1.1,),
-                    
         )
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -101,9 +100,6 @@ class EventFundPage extends StatelessWidget {
           NumberFormat currencyFormat = NumberFormat.currency(symbol: '₹');
           String formattedTarget = currencyFormat.format(targetAmount);
           String formattedRaised = currencyFormat.format(raisedAmount);
-          
-          // Payment QR code with campaign ID
-          String qrData = "https://donation.example.com/donate?campaign=${doc.id}";
           
           return SingleChildScrollView(
             child: Padding(
@@ -233,7 +229,7 @@ class EventFundPage extends StatelessWidget {
                   
                   SizedBox(height: 24),
                   
-                  // Donation QR Section
+                  // Static QR Image Section instead of dynamic QR generator
                   Center(
                     child: Column(
                       children: [
@@ -258,14 +254,10 @@ class EventFundPage extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: QrImageView(
-                            data: qrData,
-                            version: QrVersions.auto,
-                            size: 200.0,
-                            embeddedImage: AssetImage('assets/qr_code.png'), // Make sure this asset exists
-                            embeddedImageStyle: QrEmbeddedImageStyle(
-                              size: Size(40, 40),
-                            ),
+                          child: Image.asset(
+                            'assets/images/qr_code_rcf.jpeg',  // Make sure this image exists in your assets folder
+                            width: 200,
+                            height: 200,
                           ),
                         ),
                         SizedBox(height: 16),
@@ -276,7 +268,7 @@ class EventFundPage extends StatelessWidget {
                             fontStyle: FontStyle.italic,
                             color: Colors.grey[700],
                           ),
-                        ),
+                        ),  
                       ],
                     ),
                   ),

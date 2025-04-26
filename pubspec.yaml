@@ -37,17 +37,29 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
   assets:
   - assets/images/logo.png
-  - assets/images/hospital.jpg
-  - assets/images/blood_donation.jpg 
-  - assets/images/blood_donation.jpg
-  - assets/images/donor_2.jpg
-  - assets/images/blood_drive.jpg
+  - assets/images/achievement1.jpeg
+  - assets/images/achievement2.jpeg
+  - assets/images/achievement3.jpeg
+  - assets/images/achievement4.jpeg
+  - assets/images/achievement5.jpeg
+  - assets/images/award.jpeg 
+  - assets/images/blood_donation.jpeg
   - assets/images/donation1.jpeg
   - assets/images/donation2.jpeg
   - assets/images/donation3.jpeg
-  - assets/images/qr_code.jpeg
+  - assets/images/donor_2.jpeg
+  - assets/images/feature_1.jpeg
+  - assets/images/feature_2.jpeg
+  - assets/images/feature_3.jpeg
+  - assets/images/media1.jpeg
+  - assets/images/media2.jpeg
+  - assets/images/media3.jpeg
+  - assets/images/media4.jpeg
+  - assets/images/media5.jpeg
+  - assets/images/qr_code_rcf.jpeg
   - assets/images/roti_bank.jpeg
 
  
