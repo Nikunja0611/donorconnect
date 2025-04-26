@@ -5,13 +5,16 @@ import 'donation_history_page.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
-  _ProfilePageState createState() => _ProfilePageState();
+  ProfilePageState createState() => ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class ProfilePageState extends State<ProfilePage> {
   bool _isLoading = true;
   Map<String, dynamic>? _userData;
   
+  // Current index for bottom navigation - set to 4 for Profile
+  int _currentIndex = 4;
+
   @override
   void initState() {
     super.initState();
@@ -40,8 +43,39 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // Navigation bar tab handling
+  void _onTabTapped(int index) {
+    if (index == _currentIndex) return; // No need to navigate if already on the tab
+    
+    setState(() {
+      _currentIndex = index;
+    });
+    
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, '/home');
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(context, '/medical_help_page');
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, '/blood_bank_page');
+        break;
+      case 3:
+        Navigator.pushReplacementNamed(context, '/fundraising_page');
+        break;
+      case 4:
+        // We're already on profile page, no need to navigate
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions for responsive layouts
+    final Size screenSize = MediaQuery.of(context).size;
+    final bool isTablet = screenSize.width > 600;
+    
     return Scaffold(
       backgroundColor: Color(0xFFF8ECF1),
       appBar: AppBar(
@@ -71,6 +105,26 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        selectedItemColor: Colors.pink[700],
+        unselectedItemColor: Colors.pink[300],
+        type: BottomNavigationBarType.fixed,
+        onTap: _onTabTapped,
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: const Icon(Icons.medical_services), 
+              label: isTablet ? 'Medical Help' : 'Medical'),
+          const BottomNavigationBarItem(
+              icon: Icon(Icons.opacity), label: 'Blood Bank'),
+          BottomNavigationBarItem(
+              icon: const Icon(Icons.volunteer_activism), 
+              label: isTablet ? 'Fundraising' : 'Fundraising'),
+          const BottomNavigationBarItem(
+              icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
     );
   }
   
@@ -349,7 +403,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       );
                       
                       if (pickedDate != null) {
-                        dobController.text = '${pickedDate.day}/${pickedDate.month}/${pickedDate.year}';
+                        setState(() {
+                          dobController.text = '${pickedDate.day}/${pickedDate.month}/${pickedDate.year}';
+                        });
                       }
                     },
                     child: AbsorbPointer(
@@ -461,7 +517,6 @@ class _ProfilePageState extends State<ProfilePage> {
       );
       return;
     }
-
     try {
       setState(() => _isLoading = true);
       

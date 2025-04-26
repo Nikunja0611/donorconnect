@@ -94,55 +94,67 @@ class _HomePageState extends State<HomePage> {
 
     switch (index) {
       case 0:
-        // We're already on home page, no need to navigate
+        Navigator.pushNamed(context, '/home_screen');
         break;
       case 1:
-        Navigator.pushReplacementNamed(context, '/medical_help_page');
+        Navigator.pushNamed(context, '/medical_help_page');
         break;
       case 2:
-        Navigator.pushReplacementNamed(context, '/blood_bank_page');
+        Navigator.pushNamed(context, '/blood_bank_page');
         break;
       case 3:
-        Navigator.pushReplacementNamed(context, '/fundraising_page');
+        Navigator.pushNamed(context, '/fundraising_page');
         break;
       case 4:
-        Navigator.pushReplacementNamed(context, '/profile_page');
+        Navigator.pushNamed(context, '/profile_page');
         break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get screen dimensions for responsive layouts
-    final Size screenSize = MediaQuery.of(context).size;
-    final bool isTablet = screenSize.width > 600;
+    // Get the screen size for responsive design
+    final screenSize = MediaQuery.of(context).size;
+    final textScaleFactor = MediaQuery.of(context).textScaleFactor;
     
+    // Calculate responsive font sizes
+    final double titleFontSize = screenSize.width < 360 ? 20 : (screenSize.width < 400 ? 22 : 24);
+    final double subtitleFontSize = 16 * (screenSize.width / 400).clamp(0.8, 1.2);
+    final double bodyFontSize = 14 * (screenSize.width / 400).clamp(0.85, 1.1);
+    final double smallFontSize = 12 * (screenSize.width / 400).clamp(0.9, 1.05);
+
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(isTablet ? 80 : 70),
+        preferredSize: Size.fromHeight(70 + (screenSize.width < 360 ? 10 : 0)),
         child: AppBar(
           backgroundColor: const Color(0xFFD44C6D),
           centerTitle: true,
           title: Column(
             children: [
-              Text(
-                'RAKTPURAK CHARITABLE FOUNDATION',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: isTablet ? 30 : 22,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'RAKTPURAK CHARITABLE FOUNDATION',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: titleFontSize,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,
+                  ),
                 ),
               ),
               if (!isLoading)
                 Text(
                   'Welcome, $userName',
-                  style: TextStyle(color: Colors.white, fontSize: isTablet ? 22 : 16),
+                  style: TextStyle(
+                    color: Colors.white, 
+                    fontSize: subtitleFontSize,
+                  ),
                 ),
             ],
           ),
           actions: [
-            // Admin dashboard button (shows only for admins)
             if (isAdmin)
               IconButton(
                 icon: const Icon(Icons.dashboard),
@@ -160,13 +172,9 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: SafeArea(
-        bottom: false, // Don't apply bottom padding as BottomNavigationBar handles it
-        child: ListView(
-          // Using ListView instead of SingleChildScrollView for better performance
-          padding: EdgeInsets.only(
-            bottom: kBottomNavigationBarHeight + 16, // Add padding at bottom
-          ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Blood Donation Card
             Container(
@@ -187,7 +195,7 @@ class _HomePageState extends State<HomePage> {
                           'Blood Donation',
                           style: TextStyle(
                             color: Colors.purple[900],
-                            fontSize: isTablet ? 22 : 20,
+                            fontSize: subtitleFontSize * 1.1,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -196,11 +204,11 @@ class _HomePageState extends State<HomePage> {
                           text: TextSpan(
                             style: TextStyle(
                               color: Colors.grey[800], 
-                              fontSize: isTablet ? 16 : 14
+                              fontSize: bodyFontSize,
                             ),
                             children: const [
                               TextSpan(
-                                text: 'Your one blood donation can be someone\'s second '
+                                text: 'Your one blood donation can be someone\'s second ',
                               ),
                               TextSpan(
                                 text: 'chance at life',
@@ -217,7 +225,7 @@ class _HomePageState extends State<HomePage> {
                     flex: 1,
                     child: Image.asset(
                       'assets/images/logo.png',
-                      height: isTablet ? 80 : 60,
+                      height: 60,
                     ),
                   ),
                 ],
@@ -234,8 +242,8 @@ class _HomePageState extends State<HomePage> {
                     'A Peek into Our Motive',
                     style: TextStyle(
                       color: Colors.deepPurple, 
-                      fontSize: isTablet ? 20 : 18, 
-                      fontWeight: FontWeight.w600
+                      fontSize: subtitleFontSize,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   TextButton(
@@ -244,7 +252,10 @@ class _HomePageState extends State<HomePage> {
                     },
                     child: Text(
                       'View More',
-                      style: TextStyle(color: Colors.pink[400]),
+                      style: TextStyle(
+                        color: Colors.pink[400],
+                        fontSize: bodyFontSize,
+                      ),
                     ),
                   ),
                 ],
@@ -269,7 +280,7 @@ class _HomePageState extends State<HomePage> {
                 borderRadius: BorderRadius.circular(15),
                 child: ImageSlideshow(
                   width: double.infinity,
-                  height: isTablet ? 250 : 200,
+                  height: screenSize.width * 0.5, // Responsive height
                   initialPage: 0,
                   indicatorColor: Colors.pink,
                   indicatorBackgroundColor: Colors.grey,
@@ -295,14 +306,14 @@ class _HomePageState extends State<HomePage> {
                     'Featured Events',
                     style: TextStyle(
                       color: Colors.deepPurple, 
-                      fontSize: isTablet ? 20 : 18, 
-                      fontWeight: FontWeight.w600
+                      fontSize: subtitleFontSize,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 10),
                   ImageSlideshow(
                     width: double.infinity,
-                    height: isTablet ? 180 : 150,
+                    height: screenSize.width * 0.4, // Responsive height
                     initialPage: 0,
                     indicatorColor: Colors.pink,
                     indicatorBackgroundColor: Colors.grey,
@@ -333,8 +344,8 @@ class _HomePageState extends State<HomePage> {
                               ),
                               child: Image.asset(
                                 event['image'],
-                                height: isTablet ? 180 : 150,
-                                width: isTablet ? 150 : 120,
+                                height: screenSize.width * 0.4,
+                                width: screenSize.width * 0.3,
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -349,7 +360,7 @@ class _HomePageState extends State<HomePage> {
                                       event['title'],
                                       style: TextStyle(
                                         color: Colors.pink[400],
-                                        fontSize: isTablet ? 20 : 18,
+                                        fontSize: subtitleFontSize,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -357,14 +368,14 @@ class _HomePageState extends State<HomePage> {
                                     Text(
                                       event['date'],
                                       style: TextStyle(
-                                        fontSize: isTablet ? 16 : 14,
+                                        fontSize: smallFontSize,
                                         color: Colors.grey[700],
                                       ),
                                     ),
                                     const SizedBox(height: 5),
                                     Text(
                                       event['location'],
-                                      style: TextStyle(fontSize: isTablet ? 16 : 14),
+                                      style: TextStyle(fontSize: smallFontSize),
                                     ),
                                   ],
                                 ),
@@ -389,8 +400,8 @@ class _HomePageState extends State<HomePage> {
                     'Upcoming Events',
                     style: TextStyle(
                       color: Colors.deepPurple, 
-                      fontSize: isTablet ? 20 : 18, 
-                      fontWeight: FontWeight.w600
+                      fontSize: subtitleFontSize,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   Container(
@@ -404,9 +415,6 @@ class _HomePageState extends State<HomePage> {
 
             // Hospital Event Card
             GestureDetector(
-              onTap: () {
-                // Handle tap on hospital event card
-              },
               child: Container(
                 margin: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -430,8 +438,8 @@ class _HomePageState extends State<HomePage> {
                       ),
                       child: Image.asset(
                         'assets/images/hospital.jpg',
-                        height: isTablet ? 120 : 100,
-                        width: isTablet ? 140 : 120,
+                        height: 100,
+                        width: screenSize.width * 0.3,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -445,14 +453,14 @@ class _HomePageState extends State<HomePage> {
                               'Hospital',
                               style: TextStyle(
                                 color: Colors.pink[400],
-                                fontSize: isTablet ? 20 : 18,
+                                fontSize: subtitleFontSize,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 5),
                             Text(
                               'Blood Donation Drive',
-                              style: TextStyle(fontSize: isTablet ? 18 : 16),
+                              style: TextStyle(fontSize: bodyFontSize),
                             ),
                           ],
                         ),
@@ -476,8 +484,8 @@ class _HomePageState extends State<HomePage> {
                         'Our Achievements',
                         style: TextStyle(
                           color: Colors.deepPurple, 
-                          fontSize: isTablet ? 20 : 18, 
-                          fontWeight: FontWeight.w600
+                          fontSize: subtitleFontSize,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       TextButton(
@@ -487,7 +495,10 @@ class _HomePageState extends State<HomePage> {
                         },
                         child: Text(
                           'View All',
-                          style: TextStyle(color: Colors.pink[400]),
+                          style: TextStyle(
+                            color: Colors.pink[400],
+                            fontSize: bodyFontSize,
+                          ),
                         ),
                       ),
                     ],
@@ -501,113 +512,103 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             
-            // UPDATED Achievements Cards - Fixed to prevent overflow
-            Container(
-              height: isTablet ? screenSize.height * 0.32 : screenSize.height * 0.33,
-              margin: const EdgeInsets.only(bottom: 24),
+            // Added Achievements Cards from first home screen
+            SizedBox(
+              height: screenSize.width * 0.6, // Responsive height
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                physics: const ClampingScrollPhysics(),
                 itemCount: achievements.length,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 itemBuilder: (context, index) {
                   final achievement = achievements[index];
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Container(
-                        width: isTablet ? 240 : 200,
-                        constraints: BoxConstraints(
-                          maxHeight: constraints.maxHeight - 16,
+                  return Container(
+                    width: screenSize.width * 0.5, // Responsive width
+                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.2),
+                          spreadRadius: 1,
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
-                        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.2),
-                              spreadRadius: 1,
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Achievement image
+                        ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
+                          child: Image.asset(
+                            achievement['image'],
+                            height: screenSize.width * 0.28, // Responsive height
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Achievement image with adaptive height
-                            ClipRRect(
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(12),
-                                topRight: Radius.circular(12),
+                        // Achievement details
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                achievement['title'],
+                                style: TextStyle(
+                                  color: Colors.pink[700],
+                                  fontSize: bodyFontSize,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              child: Image.asset(
-                                achievement['image'],
-                                height: isTablet ? 130 : constraints.maxHeight * 0.45,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
+                              const SizedBox(height: 4),
+                              Text(
+                                achievement['description'],
+                                style: TextStyle(
+                                  fontSize: smallFontSize,
+                                  color: Colors.grey[800],
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            // Achievement details in an Expanded widget to prevent overflow
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      achievement['title'],
-                                      style: TextStyle(
-                                        color: Colors.pink[700],
-                                        fontSize: isTablet ? 16 : 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Expanded(
-                                      child: Text(
-                                        achievement['description'],
-                                        style: TextStyle(
-                                          fontSize: isTablet ? 14 : 12,
-                                          color: Colors.grey[800],
-                                        ),
-                                        maxLines: 3,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.pink[50],
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        achievement['year'],
-                                        style: TextStyle(
-                                          fontSize: isTablet ? 14 : 12,
-                                          color: Colors.pink[700],
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.pink[50],
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  achievement['year'],
+                                  style: TextStyle(
+                                    fontSize: smallFontSize,
+                                    color: Colors.pink[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      );
-                    }
+                      ],
+                    ),
                   );
                 },
               ),
             ),
+            
+            // Bottom padding
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -617,18 +618,15 @@ class _HomePageState extends State<HomePage> {
         unselectedItemColor: Colors.pink[300],
         type: BottomNavigationBarType.fixed,
         onTap: _onTabTapped,
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.medical_services), 
-              label: isTablet ? 'Medical Help' : 'Medical'),
-          const BottomNavigationBarItem(
+              icon: Icon(Icons.medical_services), label: 'Medical Help'),
+          BottomNavigationBarItem(
               icon: Icon(Icons.opacity), label: 'Blood Bank'),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.volunteer_activism), 
-              label: isTablet ? 'Fundraising' : 'Fundraising'),
-          const BottomNavigationBarItem(
-              icon: Icon(Icons.person), label: 'Profile'),
+              icon: Icon(Icons.volunteer_activism), label: 'Fundraising'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );

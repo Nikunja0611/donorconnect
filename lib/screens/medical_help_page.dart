@@ -55,6 +55,7 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
 
   Future<void> _submitRequest() async {
     final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -64,6 +65,7 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
       );
       return;
     }
+
     if (selectedEquipments.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -75,10 +77,16 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
     }
 
     try {
-      await FirebaseFirestore.instance
-          .collection('medical_help')
-          .add({
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final userName = userDoc.data()?['name'] ?? 'Unknown';
+
+      await FirebaseFirestore.instance.collection('medical_help').add({
         'requesterId': user.uid,
+        'requesterName': userName,
         'equipments': selectedEquipments,
         'requestedDate': Timestamp.fromDate(selectedDate),
         'timestamp': FieldValue.serverTimestamp(),
@@ -109,10 +117,10 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
     setState(() => _selectedIndex = index);
     switch (index) {
       case 0:
-        Navigator.pushReplacementNamed(context, '/home_screen');
+        Navigator.pushReplacementNamed(context, '/');
         break;
       case 1:
-        // Already on Medical Help page
+        Navigator.pushReplacementNamed(context, '/medical_help_page');
         break;
       case 2:
         Navigator.pushReplacementNamed(context, '/blood_bank_page');

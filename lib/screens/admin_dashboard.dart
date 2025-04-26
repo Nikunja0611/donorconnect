@@ -633,6 +633,7 @@ class FundraisingTab extends StatelessWidget {
   }
 }
 
+// Update the UsersTab class in screens/admin_dashboard.dart
 class UsersTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -669,6 +670,18 @@ class UsersTab extends StatelessWidget {
                     color: Colors.grey[700],
                   ),
                 ),
+                SizedBox(height: 24),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.add),
+                  label: Text('Add User'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    _showAddUserDialog(context);
+                  },
+                ),
               ],
             ),
           );
@@ -683,7 +696,7 @@ class UsersTab extends StatelessWidget {
             
             String name = data['name'] ?? 'Unknown User';
             String email = data['email'] ?? 'No email';
-            String bloodType = data['bloodType'] ?? 'Unknown';
+            String bloodType = data['bloodType'] ?? data['bloodGroup'] ?? 'Unknown';
             bool isAdmin = data['isAdmin'] == true;
             
             return Card(
@@ -760,10 +773,10 @@ class UsersTab extends StatelessWidget {
                   onSelected: (value) {
                     switch (value) {
                       case 'view':
-                        // View user details
+                        _showUserDetailsDialog(context, doc.id, data);
                         break;
                       case 'edit':
-                        // Edit user
+                        _showEditUserDialog(context, doc.id, data);
                         break;
                       case 'makeAdmin':
                         // Make user admin
@@ -825,13 +838,389 @@ class UsersTab extends StatelessWidget {
                   },
                 ),
                 onTap: () {
-                  // Show user details
+                  // Show user details when tapping on the card
+                  _showUserDetailsDialog(context, doc.id, data);
                 },
               ),
             );
           },
         );
       },
+    );
+  }
+  
+  // Function to show user details dialog
+  void _showUserDetailsDialog(BuildContext context, String userId, Map<String, dynamic> userData) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('User Details'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildUserDetailRow('Name', userData['name'] ?? 'N/A'),
+              _buildUserDetailRow('Email', userData['email'] ?? 'N/A'),
+              _buildUserDetailRow('Phone', userData['phone'] ?? 'N/A'),
+              _buildUserDetailRow('Address', userData['address'] ?? 'N/A'),
+              _buildUserDetailRow('Date of Birth', userData['dob'] ?? 'N/A'),
+              _buildUserDetailRow('Blood Group', userData['bloodGroup'] ?? userData['bloodType'] ?? 'N/A'),
+              _buildUserDetailRow('Admin Status', userData['isAdmin'] == true ? 'Admin' : 'Regular User'),
+              _buildUserDetailRow('Donor Status', userData['isDonor'] == true ? 'Donor' : 'Not a Donor'),
+              if (userData['createdAt'] != null)
+                _buildUserDetailRow('Account Created', userData['createdAt'].toDate().toString()),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: Text('Close'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: Text('Edit'),
+            onPressed: () {
+              Navigator.pop(context);
+              _showEditUserDialog(context, userId, userData);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // Helper method to build detail rows
+  Widget _buildUserDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // Function to show edit user dialog
+  void _showEditUserDialog(BuildContext context, String userId, Map<String, dynamic> userData) {
+    final nameController = TextEditingController(text: userData['name'] ?? '');
+    final emailController = TextEditingController(text: userData['email'] ?? '');
+    final phoneController = TextEditingController(text: userData['phone'] ?? '');
+    final addressController = TextEditingController(text: userData['address'] ?? '');
+    final dobController = TextEditingController(text: userData['dob'] ?? '');
+    final bloodGroupController = TextEditingController(text: userData['bloodGroup'] ?? userData['bloodType'] ?? '');
+    
+    bool isAdmin = userData['isAdmin'] == true;
+    bool isDonor = userData['isDonor'] == true;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit User'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: addressController,
+                decoration: InputDecoration(
+                  labelText: 'Address',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: dobController,
+                decoration: InputDecoration(
+                  labelText: 'Date of Birth',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today),
+                ),
+                readOnly: true,
+                onTap: () async {
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(1900),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    dobController.text = "${picked.day}/${picked.month}/${picked.year}";
+                  }
+                },
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: bloodGroupController,
+                decoration: InputDecoration(
+                  labelText: 'Blood Group',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: CheckboxListTile(
+                      title: Text('Admin'),
+                      value: isAdmin,
+                      onChanged: (value) {
+                        isAdmin = value ?? false;
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: CheckboxListTile(
+                      title: Text('Donor'),
+                      value: isDonor,
+                      onChanged: (value) {
+                        isDonor = value ?? false;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: Text('Save'),
+            onPressed: () {
+              // Update user data in Firestore
+              FirebaseFirestore.instance.collection('users').doc(userId).update({
+                'name': nameController.text,
+                'email': emailController.text,
+                'phone': phoneController.text,
+                'address': addressController.text,
+                'dob': dobController.text,
+                'bloodGroup': bloodGroupController.text,
+                'isAdmin': isAdmin,
+                'isDonor': isDonor,
+              }).then((_) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('User updated successfully')),
+                );
+              }).catchError((error) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error updating user: $error')),
+                );
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Function to show add user dialog
+  void _showAddUserDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    final phoneController = TextEditingController();
+    final addressController = TextEditingController();
+    final dobController = TextEditingController();
+    final bloodGroupController = TextEditingController();
+    
+    bool isAdmin = false;
+    bool isDonor = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Add New User'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: passwordController,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: addressController,
+                decoration: InputDecoration(
+                  labelText: 'Address',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: dobController,
+                decoration: InputDecoration(
+                  labelText: 'Date of Birth',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today),
+                ),
+                readOnly: true,
+                onTap: () async {
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(1900),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    dobController.text = "${picked.day}/${picked.month}/${picked.year}";
+                  }
+                },
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: bloodGroupController,
+                decoration: InputDecoration(
+                  labelText: 'Blood Group',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: CheckboxListTile(
+                      title: Text('Admin'),
+                      value: isAdmin,
+                      onChanged: (value) {
+                        isAdmin = value ?? false;
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: CheckboxListTile(
+                      title: Text('Donor'),
+                      value: isDonor,
+                      onChanged: (value) {
+                        isDonor = value ?? false;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: Text('Add User'),
+            onPressed: () async {
+              try {
+                // Create user with Firebase Authentication
+                final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                  email: emailController.text,
+                  password: passwordController.text,
+                );
+                
+                // Add user data to Firestore
+                await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+                  'name': nameController.text,
+                  'email': emailController.text,
+                  'phone': phoneController.text,
+                  'address': addressController.text,
+                  'dob': dobController.text,
+                  'bloodGroup': bloodGroupController.text,
+                  'isAdmin': isAdmin,
+                  'isDonor': isDonor,
+                  'createdAt': FieldValue.serverTimestamp(),
+                });
+                
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('User added successfully')),
+                );
+              } catch (error) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error adding user: $error')),
+                );
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 }

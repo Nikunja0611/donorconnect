@@ -7,7 +7,9 @@ class EventFundPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Upcoming Campaign'),
+        title: const Text('Upcoming Campaign'
+        
+        ),
         backgroundColor: const Color(0xFFD44C6D),
       ),
       body: SingleChildScrollView(
@@ -43,21 +45,6 @@ class EventFundPage extends StatelessWidget {
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // e.g. launch donation URL
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD44C6D),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: const Center(
-                child: Text(
-                  'Donate Now',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-            ),
           ],
         ),
       ),
