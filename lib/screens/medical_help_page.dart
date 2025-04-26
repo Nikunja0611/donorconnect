@@ -12,20 +12,14 @@ class MedicalHelpPage extends StatefulWidget {
 class _MedicalHelpPageState extends State<MedicalHelpPage> {
   DateTime selectedDate = DateTime.now();
   List<String> selectedEquipments = [];
+
   final List<String> equipments = [
-    'Bipap Machines',
-    'Cpap Machines',
-    'Oxygen Concentrator',
-    'Oxygen Cylinder',
-    'Patient Beds',
-    'Portable Suction Machines',
-    'Air Mattress',
-    'NIV Mask',
-    'Wheel Chairs',
-    'Patient Monitor',
-    'Nebulizer',
-    'BP Machine',
+    'Bipap Machines', 'Cpap Machines', 'Oxygen Concentrator',
+    'Oxygen Cylinder', 'Patient Beds', 'Portable Suction Machines',
+    'Air Mattress', 'NIV Mask', 'Wheel Chairs',
+    'Patient Monitor', 'Nebulizer', 'BP Machine',
   ];
+
   int _selectedIndex = 1;
 
   final Color primaryColor = const Color(0xFFC14465);
@@ -40,10 +34,7 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
       lastDate: DateTime(2030),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: primaryColor,
-            onPrimary: Colors.white,
-          ),
+          colorScheme: ColorScheme.light(primary: primaryColor),
         ),
         child: child!,
       ),
@@ -55,33 +46,18 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
 
   Future<void> _submitRequest() async {
     final user = FirebaseAuth.instance.currentUser;
-
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You must be signed in to submit a request.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackbar('You must be signed in to submit a request.', Colors.red);
       return;
     }
 
     if (selectedEquipments.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one equipment.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackbar('Please select at least one equipment.', Colors.red);
       return;
     }
 
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       final userName = userDoc.data()?['name'] ?? 'Unknown';
 
       await FirebaseFirestore.instance.collection('medical_help').add({
@@ -89,28 +65,28 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
         'requesterName': userName,
         'equipments': selectedEquipments,
         'requestedDate': Timestamp.fromDate(selectedDate),
+        'status': 'Pending',
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Request submitted successfully!'),
-          backgroundColor: primaryColor,
-        ),
-      );
+      _showSnackbar('Request submitted successfully!', primaryColor);
 
       setState(() {
         selectedEquipments.clear();
         selectedDate = DateTime.now();
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error submitting request: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackbar('Error submitting request: $e', Colors.red);
     }
+  }
+
+  void _showSnackbar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+      ),
+    );
   }
 
   void _onItemTapped(int index) {
@@ -136,199 +112,310 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
 
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 10),
-                    Text(
-                      'MEDICAL HELP',
-                      style: TextStyle(
-                        color: primaryColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    _buildCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Select the desired date',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF333333),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          GestureDetector(
-                            onTap: () => _selectDate(context),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 15,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${selectedDate.day.toString().padLeft(2, '0')}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.year}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Color(0xFF333333),
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.calendar_today,
-                                    color: primaryColor,
-                                    size: 20,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Select the Equipments Required',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF333333),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          ...equipments.map(_buildEquipmentOption),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _submitRequest,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: const Text(
-                                'SUBMIT REQUEST',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: width * 0.05, vertical: 20),
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              Text(
+                'MEDICAL HELP',
+                style: TextStyle(
+                  color: primaryColor,
+                  fontSize: width > 600 ? 28 : 22,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            BottomNavigationBar(
-              items: const [
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.home), label: 'Home'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.medical_services),
-                    label: 'Medical Help'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.opacity), label: 'Blood Bank'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.volunteer_activism),
-                    label: 'Fundraising'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.person), label: 'Profile'),
-              ],
-              currentIndex: _selectedIndex,
-              selectedItemColor: Colors.pink[700],
-              unselectedItemColor: Colors.pink[300],
-              onTap: _onItemTapped,
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: Colors.white,
-            ),
-          ],
+              const SizedBox(height: 20),
+              _buildIntroCard(width),
+              _buildUserRequestsCard(),
+              const SizedBox(height: 20),
+              _buildRequestForm(width),
+            ],
+          ),
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.pink[700],
+        unselectedItemColor: Colors.pink[300],
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.local_hospital), label: 'Medical'),
+          BottomNavigationBarItem(icon: Icon(Icons.bloodtype), label: 'Blood Bank'),
+          BottomNavigationBarItem(icon: Icon(Icons.volunteer_activism), label: 'Fundraiser'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
       ),
     );
   }
 
-  Widget _buildCard({required Widget child}) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: child,
-      );
-
-  Widget _buildEquipmentOption(String equipment) {
-    final bool isSelected = selectedEquipments.contains(equipment);
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          isSelected
-              ? selectedEquipments.remove(equipment)
-              : selectedEquipments.add(equipment);
-        });
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? primaryColor.withOpacity(0.1)
-              : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? primaryColor : Colors.grey.shade300,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected ? Icons.check_circle : Icons.circle_outlined,
-              color: isSelected ? primaryColor : Colors.grey,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              equipment,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? accentColor : Colors.black,
+  Widget _buildIntroCard(double width) {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.medical_services, color: primaryColor, size: width > 600 ? 28 : 24),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'About Medical Equipment Rental',
+                  style: TextStyle(
+                    fontSize: width > 600 ? 20 : 18,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          SizedBox(height: 12),
+          Text(
+            'The Raktapurak Charitable Foundation provides medical equipment on a rental basis to those in need...',
+            style: TextStyle(fontSize: width > 600 ? 16 : 14, color: Colors.grey[800]),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'How it works:',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: accentColor),
+          ),
+          const SizedBox(height: 8),
+          _buildStepItem('1', 'Select the equipment you need from the list below'),
+          _buildStepItem('2', 'Choose the date when you need the equipment'),
+          _buildStepItem('3', 'Submit your request and wait for approval'),
+          _buildStepItem('4', 'Once approved, our team will contact you for delivery details'),
+          const SizedBox(height: 10),
+          Text(
+            'Note: All equipment is provided on a first-come, first-served basis. Availability may vary.',
+            style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey[700]),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildUserRequestsCard() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('medical_help')
+          .where('requesterId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+          .orderBy('timestamp', descending: true)
+          .limit(3)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+          return _buildCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Your Recent Requests',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: accentColor),
+                ),
+                const SizedBox(height: 8),
+                ...snapshot.data!.docs.map((doc) {
+                  var data = doc.data() as Map<String, dynamic>;
+                  List<dynamic> equip = data['equipments'] ?? [];
+                  String status = data['status'] ?? 'Pending';
+                  Timestamp? ts = data['requestedDate'];
+                  String date = ts != null ? '${ts.toDate().day}-${ts.toDate().month}-${ts.toDate().year}' : 'N/A';
+                  
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: _getStatusColor(status).withOpacity(0.2),
+                        child: Icon(Icons.medical_services, color: _getStatusColor(status)),
+                      ),
+                      title: Text(
+                        equip.length > 1 ? '${equip[0]} + ${equip.length - 1} more' : (equip.isEmpty ? 'No equipment' : equip[0]),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      subtitle: Text('Needed by: $date', style: const TextStyle(fontSize: 12)),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(status).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            color: _getStatusColor(status),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildRequestForm(double width) {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Request Medical Equipment',
+            style: TextStyle(fontSize: width > 600 ? 20 : 18, fontWeight: FontWeight.bold, color: primaryColor),
+          ),
+          const SizedBox(height: 15),
+          Text('Select Equipment:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+          const SizedBox(height: 10),
+          _buildEquipmentGrid(width),
+          const SizedBox(height: 20),
+          Text('Select Required Date:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+          const SizedBox(height: 10),
+          InkWell(
+            onTap: () => _selectDate(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("${selectedDate.day}-${selectedDate.month}-${selectedDate.year}", style: const TextStyle(fontSize: 16)),
+                  Icon(Icons.calendar_today, color: primaryColor),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 25),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: selectedEquipments.isNotEmpty ? _submitRequest : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Submit Request', style: TextStyle(fontSize: 16)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEquipmentGrid(double width) {
+    int crossAxisCount = width > 600 ? 3 : 2;
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: 3.5,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: equipments.length,
+      itemBuilder: (context, index) {
+        final equipment = equipments[index];
+        final isSelected = selectedEquipments.contains(equipment);
+        return InkWell(
+          onTap: () {
+            setState(() {
+              if (isSelected) {
+                selectedEquipments.remove(equipment);
+              } else {
+                selectedEquipments.add(equipment);
+              }
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? primaryColor.withOpacity(0.1) : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: isSelected ? primaryColor : Colors.grey.shade300, width: isSelected ? 2 : 1),
+            ),
+            child: Row(
+              children: [
+                Icon(isSelected ? Icons.check_circle : Icons.circle_outlined,
+                    color: isSelected ? primaryColor : Colors.grey, size: 18),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    equipment,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontSize: 13,
+                      color: isSelected ? primaryColor : Colors.black87,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildStepItem(String stepNumber, String description) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 11,
+            backgroundColor: primaryColor,
+            child: Text(stepNumber, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(description, style: const TextStyle(fontSize: 14))),
+        ],
+      ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved': return Colors.green;
+      case 'in progress': return Colors.blue;
+      case 'pending': return Colors.orange;
+      case 'completed': return Colors.teal;
+      case 'rejected':
+      case 'cancelled': return Colors.red;
+      default: return Colors.grey;
+    }
   }
 }
