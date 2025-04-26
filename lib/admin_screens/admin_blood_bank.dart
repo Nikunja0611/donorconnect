@@ -3,10 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
-import 'package:syncfusion_flutter_xlsio/xlsio.dart' hide Column, Row;
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
-import 'package:open_file/open_file.dart';
 
 class AdminBloodBank extends StatefulWidget {
   @override
@@ -27,111 +23,13 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this); // Updated to 2 tabs (Donors and Reports)
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  Future<void> _exportToExcel(String collection, List<String> fields) async {
-    try {
-      // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Generating export file...')),
-      );
-      
-      final QuerySnapshot snapshot = await _firestore.collection(collection).get();
-      
-      // Create a new Excel document
-      final Workbook workbook = Workbook();
-      final Worksheet sheet = workbook.worksheets[0];
-      
-      // Add headers
-      for (int i = 0; i < fields.length; i++) {
-        sheet.getRangeByIndex(1, i + 1).setText(fields[i]);
-        // Add header styling
-        final Range headerCell = sheet.getRangeByIndex(1, i + 1);
-        headerCell.cellStyle.backColor = '#8A2BE2'; // Purple background
-        headerCell.cellStyle.fontColor = '#FFFFFF'; // White text
-        headerCell.cellStyle.bold = true;
-      }
-      
-      // Apply filters based on current view
-      List<QueryDocumentSnapshot> filteredDocs = snapshot.docs;
-      
-      if (collection == 'users') {
-        filteredDocs = snapshot.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          
-          // Check if user is a donor
-          if (data['isDonor'] != true) return false;
-          
-          // Apply blood group filter
-          if (_selectedBloodGroup != 'All' && data['bloodGroup'] != _selectedBloodGroup) return false;
-          
-          // Apply status filter
-          if (_selectedStatus != 'All') {
-            if (_selectedStatus == 'Available' && data['isAvailable'] != true) return false;
-            if (_selectedStatus == 'Not Available' && data['isAvailable'] != false) return false;
-            if (_selectedStatus == 'Suspended' && data['accountStatus'] != 'suspended') return false;
-          }
-          
-          // Apply search filter
-          if (_searchQuery.isNotEmpty) {
-            final name = (data['name'] ?? '').toString().toLowerCase();
-            if (!name.contains(_searchQuery.toLowerCase())) return false;
-          }
-          
-          return true;
-        }).toList();
-      }
-      
-      // Add data
-      for (int i = 0; i < filteredDocs.length; i++) {
-        final doc = filteredDocs[i];
-        final data = doc.data() as Map<String, dynamic>;
-        
-        for (int j = 0; j < fields.length; j++) {
-          String value = '';
-          
-          // Handle special date fields
-          if (fields[j] == 'lastDonationDate' && data[fields[j]] != null) {
-            value = DateFormat('MMM d, y').format((data[fields[j]] as Timestamp).toDate());
-          } else {
-            value = data[fields[j]]?.toString() ?? '';
-          }
-          
-          sheet.getRangeByIndex(i + 2, j + 1).setText(value);
-        }
-      }
-      
-      // Auto-fit columns
-      for (int i = 1; i <= fields.length; i++) {
-        sheet.autoFitColumn(i);
-      }
-      
-      // Save the document
-      final Directory directory = await getApplicationDocumentsDirectory();
-      final String fileName = 'DonorList-${DateFormat('yyyyMMdd').format(DateTime.now())}.xlsx';
-      final String path = '${directory.path}/$fileName';
-      final File file = File(path);
-      await file.writeAsBytes(workbook.saveAsStream());
-      workbook.dispose();
-      
-      // Open the file
-      await OpenFile.open(path);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Donor list exported to $fileName')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error exporting data: $e')),
-      );
-    }
   }
 
   Widget _buildDateRangePicker() {
@@ -262,7 +160,6 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
       }
     }
 
-    // Fixed search functionality
     return StreamBuilder<QuerySnapshot>(
       stream: query.snapshots(),
       builder: (context, snapshot) {
@@ -276,7 +173,6 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
 
         final allDonors = snapshot.data!.docs;
         
-        // Apply search filter in memory since Firestore can't do case-insensitive search
         final donors = _searchQuery.isEmpty 
             ? allDonors 
             : allDonors.where((doc) {
@@ -285,108 +181,84 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
                 return name.contains(_searchQuery.toLowerCase());
               }).toList();
 
-        return Column(
-          children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                icon: Icon(Icons.download),
-                label: Text('Export Donor List'),
-                onPressed: () => _exportToExcel('users', [
-                  'name', 'email', 'phone', 'bloodGroup', 
-                  'totalDonations', 'lastDonationDate', 'isAvailable', 'accountStatus'
-                ]),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+        return Expanded(
+          child: ListView.builder(
+            itemCount: donors.length,
+            itemBuilder: (context, index) {
+              final donor = donors[index];
+              final data = donor.data() as Map<String, dynamic>;
+              
+              final bool isAvailable = data['isAvailable'] ?? false;
+              final String accountStatus = data['accountStatus'] ?? 'active';
+              
+              return Card(
+                margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: ExpansionTile(
+                  leading: CircleAvatar(
+                    child: Text(data['bloodGroup'] ?? '?'),
+                    backgroundColor: Colors.purple.withOpacity(0.2),
                   ),
-                ),
-              ),
-            ),
-            SizedBox(height: 8),
-            Expanded(
-              child: ListView.builder(
-                itemCount: donors.length,
-                itemBuilder: (context, index) {
-                  final donor = donors[index];
-                  final data = donor.data() as Map<String, dynamic>;
-                  
-                  final bool isAvailable = data['isAvailable'] ?? false;
-                  final String accountStatus = data['accountStatus'] ?? 'active';
-                  
-                  return Card(
-                    margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: ExpansionTile(
-                      leading: CircleAvatar(
-                        child: Text(data['bloodGroup'] ?? '?'),
-                        backgroundColor: Colors.purple.withOpacity(0.2),
+                  title: Text(data['name'] ?? 'No Name'),
+                  subtitle: Text(data['email'] ?? 'No Email'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Chip(
+                        label: Text(isAvailable ? 'Available' : 'Not Available'),
+                        backgroundColor: isAvailable 
+                            ? Colors.green.withOpacity(0.2) 
+                            : Colors.orange.withOpacity(0.2),
                       ),
-                      title: Text(data['name'] ?? 'No Name'),
-                      subtitle: Text(data['email'] ?? 'No Email'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      SizedBox(width: 4),
+                      if (accountStatus == 'suspended')
+                        Chip(
+                          label: Text('Suspended'),
+                          backgroundColor: Colors.red.withOpacity(0.2),
+                        ),
+                    ],
+                  ),
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Chip(
-                            label: Text(isAvailable ? 'Available' : 'Not Available'),
-                            backgroundColor: isAvailable 
-                                ? Colors.green.withOpacity(0.2) 
-                                : Colors.orange.withOpacity(0.2),
-                          ),
-                          SizedBox(width: 4),
-                          if (accountStatus == 'suspended')
-                            Chip(
-                              label: Text('Suspended'),
-                              backgroundColor: Colors.red.withOpacity(0.2),
-                            ),
-                        ],
-                      ),
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          _buildInfoRow('Phone', data['phone'] ?? 'Not provided'),
+                          _buildInfoRow('Location', '${data['city'] ?? ''}, ${data['state'] ?? ''}'),
+                          _buildInfoRow('Total Donations', data['totalDonations']?.toString() ?? '0'),
+                          _buildInfoRow('Last Donation', 
+                              data['lastDonationDate'] != null 
+                                  ? DateFormat('MMM d, y').format((data['lastDonationDate'] as Timestamp).toDate())
+                                  : 'Never'),
+                          SizedBox(height: 10),
+                          Row(
                             children: [
-                              _buildInfoRow('Phone', data['phone'] ?? 'Not provided'),
-                              _buildInfoRow('Location', '${data['city'] ?? ''}, ${data['state'] ?? ''}'),
-                              _buildInfoRow('Total Donations', data['totalDonations']?.toString() ?? '0'),
-                              _buildInfoRow('Last Donation', 
-                                  data['lastDonationDate'] != null 
-                                      ? DateFormat('MMM d, y').format((data['lastDonationDate'] as Timestamp).toDate())
-                                      : 'Never'),
-                              SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  ElevatedButton(
-                                    child: Text('View Donation History'),
-                                    onPressed: () => _showDonationHistory(donor.id, data['name']),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.deepPurple,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                  SizedBox(width: 10),
-                                  ElevatedButton(
-                                    child: Text(isAvailable ? 'Set Not Available' : 'Set Available'),
-                                    onPressed: () => _toggleDonorAvailability(donor.id, !isAvailable),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: isAvailable ? Colors.orange : Colors.green,
-                                    ),
-                                  ),
-                                ],
+                              ElevatedButton(
+                                child: Text('View Donation History'),
+                                onPressed: () => _showDonationHistory(donor.id, data['name']),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepPurple,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              ElevatedButton(
+                                child: Text(isAvailable ? 'Set Not Available' : 'Set Available'),
+                                onPressed: () => _toggleDonorAvailability(donor.id, !isAvailable),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isAvailable ? Colors.orange : Colors.green,
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ],
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -436,7 +308,6 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
 
               final allReports = snapshot.data!.docs;
               
-              // Apply search filter for reports
               final reports = _searchQuery.isEmpty 
                   ? allReports 
                   : allReports.where((doc) {
@@ -545,9 +416,7 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
     );
   }
 
-  // Updated report details dialog - removed suspend option
   Future<void> _showReportDetails(String reportId, Map<String, dynamic> data) async {
-    // Fetch donor details if available
     String donorId = data['donorId'] ?? '';
     Map<String, dynamic> donorData = {};
     
@@ -562,7 +431,6 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
       }
     }
 
-    // Fetch reporter details if available
     String reporterId = data['reporterId'] ?? '';
     Map<String, dynamic> reporterData = {};
     
@@ -664,7 +532,7 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
         backgroundColor: Colors.white,
         iconTheme: IconThemeData(color: Colors.deepPurple),
         elevation: 0,
-        automaticallyImplyLeading: false, // Remove back arrow
+        automaticallyImplyLeading: false,
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -678,15 +546,12 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Donors Tab
           Column(
             children: [
               _buildFilterBar(),
               Expanded(child: _buildDonorsList()),
             ],
           ),
-          
-          // Reports Tab
           _buildReportsList(),
         ],
       ),
