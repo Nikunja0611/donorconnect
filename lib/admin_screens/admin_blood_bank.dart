@@ -1,193 +1,700 @@
-// screens/admin_screens/admin_blood_bank.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
+import 'package:syncfusion_flutter_xlsio/xlsio.dart' hide Column, Row;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:open_file/open_file.dart';
 
 class AdminBloodBank extends StatefulWidget {
   @override
   _AdminBloodBankState createState() => _AdminBloodBankState();
 }
 
-class _AdminBloodBankState extends State<AdminBloodBank> {
+class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  // Filter variables
+  String _selectedBloodGroup = 'All';
+  String _selectedStatus = 'All';
+  DateTime? _startDate;
+  DateTime? _endDate;
+  String _searchQuery = '';
+
   @override
-  Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).primaryColor;
-    
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this); // Updated to 2 tabs (Donors and Reports)
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _exportToExcel(String collection, List<String> fields) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Generating export file...')),
+      );
+      
+      final QuerySnapshot snapshot = await _firestore.collection(collection).get();
+      
+      // Create a new Excel document
+      final Workbook workbook = Workbook();
+      final Worksheet sheet = workbook.worksheets[0];
+      
+      // Add headers
+      for (int i = 0; i < fields.length; i++) {
+        sheet.getRangeByIndex(1, i + 1).setText(fields[i]);
+        // Add header styling
+        final Range headerCell = sheet.getRangeByIndex(1, i + 1);
+        headerCell.cellStyle.backColor = '#8A2BE2'; // Purple background
+        headerCell.cellStyle.fontColor = '#FFFFFF'; // White text
+        headerCell.cellStyle.bold = true;
+      }
+      
+      // Apply filters based on current view
+      List<QueryDocumentSnapshot> filteredDocs = snapshot.docs;
+      
+      if (collection == 'users') {
+        filteredDocs = snapshot.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          
+          // Check if user is a donor
+          if (data['isDonor'] != true) return false;
+          
+          // Apply blood group filter
+          if (_selectedBloodGroup != 'All' && data['bloodGroup'] != _selectedBloodGroup) return false;
+          
+          // Apply status filter
+          if (_selectedStatus != 'All') {
+            if (_selectedStatus == 'Available' && data['isAvailable'] != true) return false;
+            if (_selectedStatus == 'Not Available' && data['isAvailable'] != false) return false;
+            if (_selectedStatus == 'Suspended' && data['accountStatus'] != 'suspended') return false;
+          }
+          
+          // Apply search filter
+          if (_searchQuery.isNotEmpty) {
+            final name = (data['name'] ?? '').toString().toLowerCase();
+            if (!name.contains(_searchQuery.toLowerCase())) return false;
+          }
+          
+          return true;
+        }).toList();
+      }
+      
+      // Add data
+      for (int i = 0; i < filteredDocs.length; i++) {
+        final doc = filteredDocs[i];
+        final data = doc.data() as Map<String, dynamic>;
+        
+        for (int j = 0; j < fields.length; j++) {
+          String value = '';
+          
+          // Handle special date fields
+          if (fields[j] == 'lastDonationDate' && data[fields[j]] != null) {
+            value = DateFormat('MMM d, y').format((data[fields[j]] as Timestamp).toDate());
+          } else {
+            value = data[fields[j]]?.toString() ?? '';
+          }
+          
+          sheet.getRangeByIndex(i + 2, j + 1).setText(value);
+        }
+      }
+      
+      // Auto-fit columns
+      for (int i = 1; i <= fields.length; i++) {
+        sheet.autoFitColumn(i);
+      }
+      
+      // Save the document
+      final Directory directory = await getApplicationDocumentsDirectory();
+      final String fileName = 'DonorList-${DateFormat('yyyyMMdd').format(DateTime.now())}.xlsx';
+      final String path = '${directory.path}/$fileName';
+      final File file = File(path);
+      await file.writeAsBytes(workbook.saveAsStream());
+      workbook.dispose();
+      
+      // Open the file
+      await OpenFile.open(path);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Donor list exported to $fileName')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error exporting data: $e')),
+      );
+    }
+  }
+
+  Widget _buildDateRangePicker() {
+    return AlertDialog(
+      title: Text('Select Date Range'),
+      content: Container(
+        width: MediaQuery.of(context).size.width * 0.8,
+        height: MediaQuery.of(context).size.height * 0.5,
+        child: SfDateRangePicker(
+          selectionMode: DateRangePickerSelectionMode.range,
+          initialSelectedRange: _startDate != null && _endDate != null
+              ? PickerDateRange(_startDate, _endDate)
+              : null,
+          onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+            if (args.value is PickerDateRange) {
+              setState(() {
+                _startDate = args.value.startDate;
+                _endDate = args.value.endDate ?? args.value.startDate;
+              });
+            }
+          },
+          showActionButtons: true,
+          onSubmit: (value) {
+            Navigator.pop(context);
+          },
+          onCancel: () {
+            setState(() {
+              _startDate = null;
+              _endDate = null;
+            });
+            Navigator.pop(context);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    return Card(
+      margin: EdgeInsets.all(8),
+      child: Padding(
+        padding: EdgeInsets.all(8),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedBloodGroup,
+                    items: ['All', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                        .map((group) => DropdownMenuItem(
+                              value: group,
+                              child: Text(group),
+                            ))
+                        .toList(),
+                    onChanged: (value) => setState(() => _selectedBloodGroup = value!),
+                    decoration: InputDecoration(labelText: 'Blood Group'),
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedStatus,
+                    items: ['All', 'Available', 'Not Available', 'Suspended']
+                        .map((status) => DropdownMenuItem(
+                              value: status,
+                              child: Text(status),
+                            ))
+                        .toList(),
+                    onChanged: (value) => setState(() => _selectedStatus = value!),
+                    decoration: InputDecoration(labelText: 'Status'),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Search',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.calendar_today),
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (context) => _buildDateRangePicker(),
+                  ),
+                ),
+                if (_startDate != null || _endDate != null)
+                  Chip(
+                    label: Text(
+                      '${_startDate != null ? DateFormat('MMM d').format(_startDate!) : ''}'
+                      '${_endDate != null ? ' - ${DateFormat('MMM d').format(_endDate!)}' : ''}',
+                    ),
+                    onDeleted: () => setState(() {
+                      _startDate = null;
+                      _endDate = null;
+                    }),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDonorsList() {
+    Query query = _firestore.collection('users').where('isDonor', isEqualTo: true);
+
+    if (_selectedBloodGroup != 'All') {
+      query = query.where('bloodGroup', isEqualTo: _selectedBloodGroup);
+    }
+
+    if (_selectedStatus != 'All') {
+      if (_selectedStatus == 'Available') {
+        query = query.where('isAvailable', isEqualTo: true);
+      } else if (_selectedStatus == 'Not Available') {
+        query = query.where('isAvailable', isEqualTo: false);
+      } else if (_selectedStatus == 'Suspended') {
+        query = query.where('accountStatus', isEqualTo: 'suspended');
+      }
+    }
+
+    // Fixed search functionality
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('blood_donations').snapshots(),
+      stream: query.snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
-        
+
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator(
-            color: primaryColor,
-          ));
+          return Center(child: CircularProgressIndicator());
         }
+
+        final allDonors = snapshot.data!.docs;
         
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.favorite_border,
-                  size: 80,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No blood donation records found',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[700],
+        // Apply search filter in memory since Firestore can't do case-insensitive search
+        final donors = _searchQuery.isEmpty 
+            ? allDonors 
+            : allDonors.where((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final name = (data['name'] ?? '').toString().toLowerCase();
+                return name.contains(_searchQuery.toLowerCase());
+              }).toList();
+
+        return Column(
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                icon: Icon(Icons.download),
+                label: Text('Export Donor List'),
+                onPressed: () => _exportToExcel('users', [
+                  'name', 'email', 'phone', 'bloodGroup', 
+                  'totalDonations', 'lastDonationDate', 'isAvailable', 'accountStatus'
+                ]),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                SizedBox(height: 24),
-                ElevatedButton.icon(
-                  icon: Icon(Icons.add),
-                  label: Text('Add First Donation'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Add First Donation')),
-                    );
-                  },
-                ),
-              ],
-            ),
-          );
-        }
-        
-        return ListView.builder(
-          padding: EdgeInsets.all(12),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            var doc = snapshot.data!.docs[index];
-            var data = doc.data() as Map<String, dynamic>;
-            String donorName = data['donorName'] ?? 'Unknown Donor';
-            String bloodType = data['bloodType'] ?? 'Unknown';
-            String donationDate = data['donationDate'] ?? 'N/A';
-            String status = data['status'] ?? 'Pending';
-            
-            Color statusColor;
-            switch (status.toLowerCase()) {
-              case 'completed':
-                statusColor = Colors.green;
-                break;
-              case 'pending':
-                statusColor = Colors.orange;
-                break;
-              case 'cancelled':
-                statusColor = Colors.red;
-                break;
-              default:
-                statusColor = Colors.grey;
-            }
-            
-            return Card(
-              margin: EdgeInsets.symmetric(vertical: 8),
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
               ),
-              child: ListTile(
-                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                leading: CircleAvatar(
-                  backgroundColor: primaryColor.withOpacity(0.2),
-                  child: Text(
-                    bloodType,
-                    style: TextStyle(
-                      color: primaryColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                title: Text(
-                  donorName,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text('Date: $donationDate'),
-                trailing: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                onTap: () {
-                  // Show detailed view or edit options
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text('Donation Details'),
-                      content: Column(
+            ),
+            SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                itemCount: donors.length,
+                itemBuilder: (context, index) {
+                  final donor = donors[index];
+                  final data = donor.data() as Map<String, dynamic>;
+                  
+                  final bool isAvailable = data['isAvailable'] ?? false;
+                  final String accountStatus = data['accountStatus'] ?? 'active';
+                  
+                  return Card(
+                    margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: ExpansionTile(
+                      leading: CircleAvatar(
+                        child: Text(data['bloodGroup'] ?? '?'),
+                        backgroundColor: Colors.purple.withOpacity(0.2),
+                      ),
+                      title: Text(data['name'] ?? 'No Name'),
+                      subtitle: Text(data['email'] ?? 'No Email'),
+                      trailing: Row(
                         mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildDetailRow('Donor', donorName),
-                          _buildDetailRow('Blood Type', bloodType),
-                          _buildDetailRow('Date', donationDate),
-                          _buildDetailRow('Status', status),
-                          // Add more details here
+                          Chip(
+                            label: Text(isAvailable ? 'Available' : 'Not Available'),
+                            backgroundColor: isAvailable 
+                                ? Colors.green.withOpacity(0.2) 
+                                : Colors.orange.withOpacity(0.2),
+                          ),
+                          SizedBox(width: 4),
+                          if (accountStatus == 'suspended')
+                            Chip(
+                              label: Text('Suspended'),
+                              backgroundColor: Colors.red.withOpacity(0.2),
+                            ),
                         ],
                       ),
-                      actions: [
-                        TextButton(
-                          child: Text('Close'),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        TextButton(
-                          child: Text('Edit'),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            // Show edit screen
-                          },
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInfoRow('Phone', data['phone'] ?? 'Not provided'),
+                              _buildInfoRow('Location', '${data['city'] ?? ''}, ${data['state'] ?? ''}'),
+                              _buildInfoRow('Total Donations', data['totalDonations']?.toString() ?? '0'),
+                              _buildInfoRow('Last Donation', 
+                                  data['lastDonationDate'] != null 
+                                      ? DateFormat('MMM d, y').format((data['lastDonationDate'] as Timestamp).toDate())
+                                      : 'Never'),
+                              SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  ElevatedButton(
+                                    child: Text('View Donation History'),
+                                    onPressed: () => _showDonationHistory(donor.id, data['name']),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.deepPurple,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  ElevatedButton(
+                                    child: Text(isAvailable ? 'Set Not Available' : 'Set Available'),
+                                    onPressed: () => _toggleDonorAvailability(donor.id, !isAvailable),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isAvailable ? Colors.orange : Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   );
                 },
               ),
-            );
-          },
+            ),
+          ],
         );
       },
     );
   }
-  
-  Widget _buildDetailRow(String label, String value) {
+
+  Future<void> _toggleDonorAvailability(String donorId, bool isAvailable) async {
+    try {
+      await _firestore.collection('users').doc(donorId).update({
+        'isAvailable': isAvailable,
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Donor status updated successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating donor status: $e')),
+      );
+    }
+  }
+
+  Widget _buildReportsList() {
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.all(8),
+          child: TextField(
+            decoration: InputDecoration(
+              labelText: 'Search Reports',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) => setState(() => _searchQuery = value),
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _firestore.collection('reports').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              final allReports = snapshot.data!.docs;
+              
+              // Apply search filter for reports
+              final reports = _searchQuery.isEmpty 
+                  ? allReports 
+                  : allReports.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final donorName = (data['donorName'] ?? '').toString().toLowerCase();
+                      final reporterName = (data['reporterName'] ?? '').toString().toLowerCase();
+                      final reason = (data['reportReason'] ?? '').toString().toLowerCase();
+                      final query = _searchQuery.toLowerCase();
+                      return donorName.contains(query) || 
+                             reporterName.contains(query) || 
+                             reason.contains(query);
+                    }).toList();
+              
+              return ListView.builder(
+                itemCount: reports.length,
+                itemBuilder: (context, index) {
+                  final report = reports[index];
+                  final data = report.data() as Map<String, dynamic>;
+                  
+                  return Card(
+                    margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(color: Colors.deepPurple.withOpacity(0.5), width: 1),
+                    ),
+                    child: ListTile(
+                      leading: Icon(Icons.report_problem, color: Colors.deepPurple),
+                      title: Text(data['donorName'] ?? 'Unknown Donor'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Reported by: ${data['reporterName'] ?? 'Unknown'}'),
+                          Text('Reason: ${(data['reportReason'] ?? '').length > 50 
+                              ? '${data['reportReason'].substring(0, 50)}...' 
+                              : data['reportReason'] ?? 'No reason provided'}'),
+                        ],
+                      ),
+                      trailing: data['timestamp'] != null
+                          ? Text(DateFormat('MMM d').format((data['timestamp'] as Timestamp).toDate()))
+                          : null,
+                      onTap: () => _showReportDetails(report.id, data),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '$label: ',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: Colors.black87,
-              ),
+          Text('$label: ', style: TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showDonationHistory(String userId, String userName) async {
+    final donations = await _firestore.collection('users').doc(userId).collection('donations')
+        .orderBy('timestamp', descending: true)
+        .get();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('$userName\'s Donation History'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: donations.docs.isEmpty
+              ? Center(child: Text('No donation history found'))
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: donations.docs.length,
+                  itemBuilder: (context, index) {
+                    final donation = donations.docs[index];
+                    final data = donation.data();
+                    final date = (data['timestamp'] as Timestamp?)?.toDate();
+                    
+                    return ListTile(
+                      title: Text(data['bloodBank'] ?? 'Unknown Location'),
+                      subtitle: Text('${data['amount']} units on ${date != null ? DateFormat('MMM d, y').format(date) : 'unknown date'}'),
+                      trailing: Text(data['bloodGroup'] ?? '?'),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.deepPurple,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Updated report details dialog - removed suspend option
+  Future<void> _showReportDetails(String reportId, Map<String, dynamic> data) async {
+    // Fetch donor details if available
+    String donorId = data['donorId'] ?? '';
+    Map<String, dynamic> donorData = {};
+    
+    if (donorId.isNotEmpty) {
+      try {
+        final donorDoc = await _firestore.collection('users').doc(donorId).get();
+        if (donorDoc.exists) {
+          donorData = donorDoc.data() ?? {};
+        }
+      } catch (e) {
+        print('Error fetching donor details: $e');
+      }
+    }
+
+    // Fetch reporter details if available
+    String reporterId = data['reporterId'] ?? '';
+    Map<String, dynamic> reporterData = {};
+    
+    if (reporterId.isNotEmpty) {
+      try {
+        final reporterDoc = await _firestore.collection('users').doc(reporterId).get();
+        if (reporterDoc.exists) {
+          reporterData = reporterDoc.data() ?? {};
+        }
+      } catch (e) {
+        print('Error fetching reporter details: $e');
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Report Details'),
+        titleTextStyle: TextStyle(
+          color: Colors.deepPurple,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow('Reported Donor', data['donorName'] ?? 'Unknown'),
+              _buildInfoRow('Blood Group', donorData['bloodGroup'] ?? 'Unknown'),
+              _buildInfoRow('Email', donorData['email'] ?? 'Unknown'),
+              _buildInfoRow('Phone', donorData['phone'] ?? 'Not provided'),
+              
+              Divider(height: 20),
+              
+              _buildInfoRow('Reporter', data['reporterName'] ?? reporterData['name'] ?? 'Unknown'),
+              _buildInfoRow('Reporter Email', reporterData['email'] ?? 'Unknown'),
+              _buildInfoRow('Reporter Phone', reporterData['phone'] ?? 'Not provided'),
+              
+              Divider(height: 20),
+              
+              _buildInfoRow('Report Reason', data['reportReason'] ?? 'No reason provided'),
+              _buildInfoRow('Date Reported', 
+                  (data['timestamp'] as Timestamp?)?.toDate() != null 
+                      ? DateFormat('MMM d, y').format((data['timestamp'] as Timestamp).toDate())
+                      : 'Unknown'),
+              _buildInfoRow('Status', data['status'] ?? 'pending'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.deepPurple,
+            ),
+          ),
+          if (data['status'] == 'pending')
+            TextButton(
+              child: Text('Dismiss Report'),
+              onPressed: () => _updateReportStatus(reportId, 'dismissed'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateReportStatus(String reportId, String status) async {
+    try {
+      await _firestore.collection('reports').doc(reportId).update({
+        'status': status,
+        'resolvedAt': FieldValue.serverTimestamp(),
+        'resolvedBy': FirebaseAuth.instance.currentUser?.uid,
+      });
+      
+      Navigator.pop(context);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Report marked as $status')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating report: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Blood Bank Administration',
+          style: TextStyle(color: Colors.deepPurple),
+        ),
+        backgroundColor: Colors.white,
+        iconTheme: IconThemeData(color: Colors.deepPurple),
+        elevation: 0,
+        automaticallyImplyLeading: false, // Remove back arrow
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: 'Donors'),
+            Tab(text: 'Reports'),
+          ],
+          labelColor: Colors.deepPurple,
+          indicatorColor: Colors.deepPurple,
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Donors Tab
+          Column(
+            children: [
+              _buildFilterBar(),
+              Expanded(child: _buildDonorsList()),
+            ],
+          ),
+          
+          // Reports Tab
+          _buildReportsList(),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.refresh),
+        onPressed: () => setState(() {}),
+        tooltip: 'Refresh data',
+        backgroundColor: Colors.deepPurple,
       ),
     );
   }

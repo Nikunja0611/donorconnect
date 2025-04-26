@@ -1,4 +1,3 @@
-// screens/admin_dashboard.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -70,7 +69,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
     }
     
     // Verify admin status
-    return StreamBuilder<DocumentSnapshot>(
+    return StreamBuilder<DocumentSnapshot>( 
       stream: FirebaseFirestore.instance.collection('users').doc(currentUser.uid).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -124,26 +123,6 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
               AdminFundraising(),
               AdminUserHandle(),
             ],
-          ),
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: primaryColor,
-            child: Icon(Icons.add),
-            onPressed: () {
-              // Show action based on current tab
-              final currentTab = _tabController.index;
-              String action = "";
-              
-              switch(currentTab) {
-                case 0: action = "Add New Blood Donation"; break;
-                case 1: action = "Add Medical Help Request"; break;
-                case 2: action = "Create Fundraising Campaign"; break;
-                case 3: action = "Add New User"; break;
-              }
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Action: $action')),
-              );
-            },
           ),
         );
       },

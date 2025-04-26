@@ -1,4 +1,3 @@
-// screens/admin_screens/admin_user_handle.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,42 +16,79 @@ class _AdminUserHandleState extends State<AdminUserHandle> {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
     
     return Column(
       children: [
         Padding(
           padding: EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search by name or email',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+          child: isSmallScreen 
+            ? Column(
+                children: [
+                  TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search by name or email',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        searchQuery = value;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: Icon(Icons.add),
+                      label: Text('Add User'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () => _showAddUserDialog(context),
                     ),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      searchQuery = value;
-                    });
-                  },
-                ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search by name or email',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          searchQuery = value;
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.add),
+                    label: Text('Add User'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onPressed: () => _showAddUserDialog(context),
+                  ),
+                ],
               ),
-              SizedBox(width: 16),
-              ElevatedButton.icon(
-                icon: Icon(Icons.add),
-                label: Text('Add User'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () => _showAddUserDialog(context),
-              ),
-            ],
-          ),
         ),
         Divider(),
         Expanded(
@@ -127,83 +163,187 @@ class _AdminUserHandleState extends State<AdminUserHandle> {
                     margin: EdgeInsets.symmetric(vertical: 8),
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.all(16),
-                      leading: CircleAvatar(
-                        backgroundColor: isAdmin ? primaryColor : Colors.grey[300],
-                        child: Icon(
-                          isAdmin ? Icons.admin_panel_settings : Icons.person,
-                          color: isAdmin ? Colors.white : Colors.grey[700],
-                        ),
-                      ),
-                      title: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              name,
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          if (isAdmin)
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: primaryColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                'Admin',
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.email, size: 16, color: Colors.grey[600]),
-                              SizedBox(width: 4),
-                              Expanded(child: Text(email)),
-                            ],
-                          ),
-                          SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.phone, size: 16, color: Colors.grey[600]),
-                              SizedBox(width: 4),
-                              Text(phone),
-                            ],
-                          ),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => _showEditUserDialog(context, doc.id, data),
-                          ),
-                          SizedBox(width: 8),
-                          IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            // Continuing admin_user_handle.dart
-                            onPressed: () => _showDeleteConfirmation(context, doc.id, name),
-                          ),
-                        ],
-                      ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
                       onTap: () {
                         setState(() {
                           selectedUserId = doc.id;
                         });
                         _showUserDetails(context, doc.id, data);
                       },
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: isSmallScreen
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: isAdmin ? primaryColor : Colors.grey[300],
+                                      child: Icon(
+                                        isAdmin ? Icons.admin_panel_settings : Icons.person,
+                                        color: isAdmin ? Colors.white : Colors.grey[700],
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  name,
+                                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+                                              if (isAdmin)
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: primaryColor.withOpacity(0.2),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: Text(
+                                                    'Admin',
+                                                    style: TextStyle(
+                                                      color: primaryColor,
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                          SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.email, size: 16, color: Colors.grey[600]),
+                                              SizedBox(width: 4),
+                                              Expanded(child: Text(email, overflow: TextOverflow.ellipsis)),
+                                            ],
+                                          ),
+                                          SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                                              SizedBox(width: 4),
+                                              Text(phone),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton.icon(
+                                      icon: Icon(Icons.edit, size: 18),
+                                      label: Text('Edit'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.blue,
+                                      ),
+                                      onPressed: () => _showEditUserDialog(context, doc.id, data),
+                                    ),
+                                    SizedBox(width: 8),
+                                    TextButton.icon(
+                                      icon: Icon(Icons.delete, size: 18),
+                                      label: Text('Delete'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                      ),
+                                      onPressed: () => _showDeleteConfirmation(context, doc.id, name),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: isAdmin ? primaryColor : Colors.grey[300],
+                                  child: Icon(
+                                    isAdmin ? Icons.admin_panel_settings : Icons.person,
+                                    color: isAdmin ? Colors.white : Colors.grey[700],
+                                  ),
+                                ),
+                                SizedBox(width: 16),
+                                Expanded(
+                                  flex: 3,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              name,
+                                              style: TextStyle(fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                          if (isAdmin)
+                                            Container(
+                                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: primaryColor.withOpacity(0.2),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                'Admin',
+                                                style: TextStyle(
+                                                  color: primaryColor,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.email, size: 16, color: Colors.grey[600]),
+                                          SizedBox(width: 4),
+                                          Expanded(child: Text(email)),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                                      SizedBox(width: 4),
+                                      Expanded(child: Text(phone)),
+                                    ],
+                                  ),
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.edit, color: Colors.blue),
+                                      tooltip: 'Edit User',
+                                      onPressed: () => _showEditUserDialog(context, doc.id, data),
+                                    ),
+                                    SizedBox(width: 8),
+                                    IconButton(
+                                      icon: Icon(Icons.delete, color: Colors.red),
+                                      tooltip: 'Delete User',
+                                      onPressed: () => _showDeleteConfirmation(context, doc.id, name),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                      ),
                     ),
                   );
                 },
@@ -217,6 +357,8 @@ class _AdminUserHandleState extends State<AdminUserHandle> {
   
   void _showUserDetails(BuildContext context, String userId, Map<String, dynamic> userData) {
     final primaryColor = Theme.of(context).primaryColor;
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
     
     String name = userData['name'] ?? 'Unknown';
     String email = userData['email'] ?? 'No email';
@@ -227,92 +369,131 @@ class _AdminUserHandleState extends State<AdminUserHandle> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text('User Details'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(
-                  child: CircleAvatar(
-                    radius: 40,
-                    backgroundColor: isAdmin ? primaryColor : Colors.grey[300],
-                    child: Icon(
-                      isAdmin ? Icons.admin_panel_settings : Icons.person,
-                      size: 40,
-                      color: isAdmin ? Colors.white : Colors.grey[700],
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isSmallScreen ? screenSize.width * 0.9 : 500,
+              maxHeight: screenSize.height * 0.8,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'User Details',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  Divider(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Center(
+                            child: CircleAvatar(
+                              radius: 40,
+                              backgroundColor: isAdmin ? primaryColor : Colors.grey[300],
+                              child: Icon(
+                                isAdmin ? Icons.admin_panel_settings : Icons.person,
+                                size: 40,
+                                color: isAdmin ? Colors.white : Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          _buildDetailRow('Name', name),
+                          _buildDetailRow('Email', email),
+                          _buildDetailRow('Phone', phone),
+                          _buildDetailRow('Address', address),
+                          _buildDetailRow('Admin Status', isAdmin ? 'Admin' : 'Regular User'),
+                          
+                          // Activity summary
+                          SizedBox(height: 16),
+                          Text(
+                            'Activity Summary',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: primaryColor,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          FutureBuilder<QuerySnapshot>(
+                            future: FirebaseFirestore.instance.collection('blood_donations')
+                              .where('donorId', isEqualTo: userId)
+                              .get(),
+                            builder: (context, donationSnapshot) {
+                              int donationCount = donationSnapshot.hasData 
+                                ? donationSnapshot.data!.docs.length 
+                                : 0;
+                              
+                              return FutureBuilder<QuerySnapshot>(
+                                future: FirebaseFirestore.instance.collection('medical_help')
+                                  .where('requesterId', isEqualTo: userId)
+                                  .get(),
+                                builder: (context, medicalSnapshot) {
+                                  int medicalRequestCount = medicalSnapshot.hasData 
+                                    ? medicalSnapshot.data!.docs.length 
+                                    : 0;
+                                  
+                                  return Column(
+                                    children: [
+                                      _buildActivityItem('Blood Donations', donationCount, Icons.favorite),
+                                      _buildActivityItem('Medical Help Requests', medicalRequestCount, Icons.medical_services),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(height: 16),
-                _buildDetailRow('Name', name),
-                _buildDetailRow('Email', email),
-                _buildDetailRow('Phone', phone),
-                _buildDetailRow('Address', address),
-                _buildDetailRow('Admin Status', isAdmin ? 'Admin' : 'Regular User'),
-                
-                // Activity summary
-                SizedBox(height: 16),
-                Text(
-                  'Activity Summary',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: primaryColor,
+                  Divider(),
+                  Wrap(
+                    spacing: 8,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      TextButton(
+                        child: Text('Edit'),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showEditUserDialog(context, userId, userData);
+                        },
+                      ),
+                      TextButton(
+                        child: Text(isAdmin ? 'Remove Admin' : 'Make Admin'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: isAdmin ? Colors.red : Colors.green,
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await _toggleAdminStatus(userId, !isAdmin);
+                        },
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: 8),
-                FutureBuilder<QuerySnapshot>(
-                  future: FirebaseFirestore.instance.collection('blood_donations')
-                    .where('donorId', isEqualTo: userId)
-                    .get(),
-                  builder: (context, donationSnapshot) {
-                    int donationCount = donationSnapshot.hasData ? donationSnapshot.data!.docs.length : 0;
-                    
-                    return FutureBuilder<QuerySnapshot>(
-                      future: FirebaseFirestore.instance.collection('medical_help')
-                        .where('requesterId', isEqualTo: userId)
-                        .get(),
-                      builder: (context, medicalSnapshot) {
-                        int medicalRequestCount = medicalSnapshot.hasData ? medicalSnapshot.data!.docs.length : 0;
-                        
-                        return Column(
-                          children: [
-                            _buildActivityItem('Blood Donations', donationCount, Icons.favorite),
-                            _buildActivityItem('Medical Help Requests', medicalRequestCount, Icons.medical_services),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              child: Text('Close'),
-              onPressed: () => Navigator.pop(context),
-            ),
-            TextButton(
-              child: Text('Edit'),
-              onPressed: () {
-                Navigator.pop(context);
-                _showEditUserDialog(context, userId, userData);
-              },
-            ),
-            TextButton(
-              child: Text(isAdmin ? 'Remove Admin' : 'Make Admin'),
-              style: TextButton.styleFrom(
-                foregroundColor: isAdmin ? Colors.red : Colors.green,
-              ),
-              onPressed: () async {
-                Navigator.pop(context);
-                await _toggleAdminStatus(userId, !isAdmin);
-              },
-            ),
-          ],
         );
       },
     );
@@ -400,121 +581,160 @@ class _AdminUserHandleState extends State<AdminUserHandle> {
     final passwordController = TextEditingController();
     bool isAdmin = false;
     
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+    
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Add New User'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        border: OutlineInputBorder(),
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isSmallScreen ? screenSize.width * 0.9 : 500,
+                  maxHeight: screenSize.height * 0.8,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Add New User',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Spacer(),
+                          IconButton(
+                            icon: Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
                       ),
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
+                      Divider(),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(
+                                controller: nameController,
+                                decoration: InputDecoration(
+                                  labelText: 'Full Name',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              TextField(
+                                controller: emailController,
+                                decoration: InputDecoration(
+                                  labelText: 'Email',
+                                  border: OutlineInputBorder(),
+                                ),
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+                              SizedBox(height: 16),
+                              TextField(
+                                controller: passwordController,
+                                decoration: InputDecoration(
+                                  labelText: 'Password',
+                                  border: OutlineInputBorder(),
+                                ),
+                                obscureText: true,
+                              ),
+                              SizedBox(height: 16),
+                              TextField(
+                                controller: phoneController,
+                                decoration: InputDecoration(
+                                  labelText: 'Phone Number',
+                                  border: OutlineInputBorder(),
+                                ),
+                                keyboardType: TextInputType.phone,
+                              ),
+                              SizedBox(height: 16),
+                              TextField(
+                                controller: addressController,
+                                decoration: InputDecoration(
+                                  labelText: 'Address',
+                                  border: OutlineInputBorder(),
+                                ),
+                                maxLines: 2,
+                              ),
+                              SizedBox(height: 16),
+                              SwitchListTile(
+                                title: Text('Admin User'),
+                                value: isAdmin,
+                                onChanged: (value) {
+                                  setState(() {
+                                    isAdmin = value;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: passwordController,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        border: OutlineInputBorder(),
+                      Divider(),
+                      ButtonBar(
+                        children: [
+                          TextButton(
+                            child: Text('Cancel'),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          ElevatedButton(
+                            child: Text('Add User'),
+                            onPressed: () async {
+                              if (nameController.text.isEmpty || 
+                                  emailController.text.isEmpty || 
+                                  passwordController.text.isEmpty ||
+                                  phoneController.text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Please fill all required fields')),
+                                );
+                                return;
+                              }
+                              
+                              try {
+                                // First create the user account in Firebase Auth
+                                final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                                  email: emailController.text.trim(),
+                                  password: passwordController.text,
+                                );
+                                
+                                // Then add the user data to Firestore
+                                await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+                                  'name': nameController.text,
+                                  'email': emailController.text.trim(),
+                                  'phone': phoneController.text,
+                                  'address': addressController.text,
+                                  'isAdmin': isAdmin,
+                                  'createdAt': FieldValue.serverTimestamp(),
+                                  'updatedAt': FieldValue.serverTimestamp(),
+                                });
+                                
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('User added successfully')),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error adding user: $e')),
+                                );
+                              }
+                            },
+                          ),
+                        ],
                       ),
-                      obscureText: true,
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: phoneController,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.phone,
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: addressController,
-                      decoration: InputDecoration(
-                        labelText: 'Address',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 2,
-                    ),
-                    SizedBox(height: 16),
-                    SwitchListTile(
-                      title: Text('Admin User'),
-                      value: isAdmin,
-                      onChanged: (value) {
-                        setState(() {
-                          isAdmin = value;
-                        });
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              actions: [
-                TextButton(
-                  child: Text('Cancel'),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                ElevatedButton(
-                  child: Text('Add User'),
-                  onPressed: () async {
-                    if (nameController.text.isEmpty || 
-                        emailController.text.isEmpty || 
-                        passwordController.text.isEmpty ||
-                        phoneController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Please fill all required fields')),
-                      );
-                      return;
-                    }
-                    
-                    try {
-                      // First create the user account in Firebase Auth
-                      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-                        email: emailController.text.trim(),
-                        password: passwordController.text,
-                      );
-                      
-                      // Then add the user data to Firestore
-                      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
-                        'name': nameController.text,
-                        'email': emailController.text.trim(),
-                        'phone': phoneController.text,
-                        'address': addressController.text,
-                        'isAdmin': isAdmin,
-                        'createdAt': FieldValue.serverTimestamp(),
-                        'updatedAt': FieldValue.serverTimestamp(),
-                      });
-                      
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('User added successfully')),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error adding user: $e')),
-                      );
-                    }
-                  },
-                ),
-              ],
             );
           },
         );
@@ -529,112 +749,153 @@ class _AdminUserHandleState extends State<AdminUserHandle> {
     final addressController = TextEditingController(text: userData['address'] ?? '');
     bool isAdmin = userData['isAdmin'] ?? false;
     
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+    
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Edit User'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        border: OutlineInputBorder(),
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isSmallScreen ? screenSize.width * 0.9 : 500,
+                  maxHeight: screenSize.height * 0.8,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Edit User',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Spacer(),
+                          IconButton(
+                            icon: Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
                       ),
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
+                      Divider(),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(
+                                controller: nameController,
+                                decoration: InputDecoration(
+                                  labelText: 'Full Name',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              TextField(
+                                controller: emailController,
+                                decoration: InputDecoration(
+                                  labelText: 'Email',
+                                  border: OutlineInputBorder(),
+                                ),
+                                keyboardType: TextInputType.emailAddress,
+                                readOnly: true, // Email can't be changed once set
+                              ),
+                              SizedBox(height: 16),
+                              TextField(
+                                controller: phoneController,
+                                decoration: InputDecoration(
+                                  labelText: 'Phone Number',
+                                  border: OutlineInputBorder(),
+                                ),
+                                keyboardType: TextInputType.phone,
+                              ),
+                              SizedBox(height: 16),
+                              TextField(
+                                controller: addressController,
+                                decoration: InputDecoration(
+                                  labelText: 'Address',
+                                  border: OutlineInputBorder(),
+                                ),
+                                maxLines: 2,
+                              ),
+                              SizedBox(height: 16),
+                              SwitchListTile(
+                                title: Text('Admin User'),
+                                value: isAdmin,
+                                onChanged: (value) {
+                                  setState(() {
+                                    isAdmin = value;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      keyboardType: TextInputType.emailAddress,
-                      readOnly: true, // Email can't be changed once set
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: phoneController,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number',
-                        border: OutlineInputBorder(),
+                      Divider(),
+                      Wrap(
+                        spacing: 8,
+                        alignment: WrapAlignment.end,
+                        children: [
+                          TextButton(
+                            child: Text('Cancel'),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          TextButton(
+                            child: Text('Reset Password'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.orange,
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _showResetPasswordDialog(context, userData['email'] ?? '');
+                            },
+                          ),
+                          ElevatedButton(
+                            child: Text('Save Changes'),
+                            onPressed: () async {
+                              if (nameController.text.isEmpty || 
+                                  phoneController.text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Please fill all required fields')),
+                                );
+                                return;
+                              }
+                              
+                              try {
+                                await FirebaseFirestore.instance.collection('users').doc(userId).update({
+                                  'name': nameController.text,
+                                  'phone': phoneController.text,
+                                  'address': addressController.text,
+                                  'isAdmin': isAdmin,
+                                  'updatedAt': FieldValue.serverTimestamp(),
+                                });
+                                
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('User updated successfully')),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error updating user: $e')),
+                                );
+                              }
+                            },
+                          ),
+                        ],
                       ),
-                      keyboardType: TextInputType.phone,
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: addressController,
-                      decoration: InputDecoration(
-                        labelText: 'Address',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 2,
-                    ),
-                    SizedBox(height: 16),
-                    SwitchListTile(
-                      title: Text('Admin User'),
-                      value: isAdmin,
-                      onChanged: (value) {
-                        setState(() {
-                          isAdmin = value;
-                        });
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              actions: [
-                TextButton(
-                  child: Text('Cancel'),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                TextButton(
-                  child: Text('Reset Password'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.orange,
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showResetPasswordDialog(context, userData['email'] ?? '');
-                  },
-                ),
-                ElevatedButton(
-                  child: Text('Save Changes'),
-                  onPressed: () async {
-                    if (nameController.text.isEmpty || 
-                        phoneController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Please fill all required fields')),
-                      );
-                      return;
-                    }
-                    
-                    try {
-                      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-                        'name': nameController.text,
-                        'phone': phoneController.text,
-                        'address': addressController.text,
-                        'isAdmin': isAdmin,
-                        'updatedAt': FieldValue.serverTimestamp(),
-                      });
-                      
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('User updated successfully')),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error updating user: $e')),
-                      );
-                    }
-                  },
-                ),
-              ],
             );
           },
         );
@@ -643,78 +904,141 @@ class _AdminUserHandleState extends State<AdminUserHandle> {
   }
   
   void _showResetPasswordDialog(BuildContext context, String email) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+    
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text('Reset Password'),
-          content: Text('Send password reset email to $email?'),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () => Navigator.pop(context),
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isSmallScreen ? screenSize.width * 0.8 : 400,
             ),
-            ElevatedButton(
-              child: Text('Send Email'),
-              onPressed: () async {
-                try {
-                  await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Password reset email sent')),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error sending password reset: $e')),
-                  );
-                }
-              },
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Reset Password',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text('Send password reset email to $email?'),
+                  SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        child: Text('Cancel'),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      SizedBox(width: 8),
+                      ElevatedButton(
+                        child: Text('Send Email'),
+                        onPressed: () async {
+                          try {
+                            await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Password reset email sent')),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error sending password reset: $e')),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         );
       },
     );
   }
   
   void _showDeleteConfirmation(BuildContext context, String userId, String userName) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+    
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text('Delete User'),
-          content: Text('Are you sure you want to delete $userName? This action cannot be undone.'),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () => Navigator.pop(context),
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isSmallScreen ? screenSize.width * 0.8 : 400,
             ),
-            ElevatedButton(
-              child: Text('Delete'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Delete User',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Are you sure you want to delete $userName? This action cannot be undone.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        child: Text('Cancel'),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      SizedBox(width: 8),
+                      ElevatedButton(
+                        child: Text('Delete'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () async {
+                          try {
+                            // In a real app, you would need admin SDK or Cloud Functions to delete users from Auth
+                            // For now, we'll just delete from Firestore
+                            await FirebaseFirestore.instance.collection('users').doc(userId).delete();
+                            
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('User deleted successfully')),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error deleting user: $e')),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              onPressed: () async {
-                try {
-                  // In a real app, you would need admin SDK or Cloud Functions to delete users from Auth
-                  // For now, we'll just delete from Firestore
-                  await FirebaseFirestore.instance.collection('users').doc(userId).delete();
-                  
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('User deleted successfully')),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error deleting user: $e')),
-                  );
-                }
-              },
             ),
-          ],
+          ),
         );
       },
     );
   }
 }
-                          

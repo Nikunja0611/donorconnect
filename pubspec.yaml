@@ -25,6 +25,9 @@ dependencies:
   file_saver: ^0.2.13
   csv: ^5.0.1
   path_provider: ^2.1.1
+  syncfusion_flutter_datepicker: ^22.2.10
+  syncfusion_flutter_xlsio: ^22.2.10
+  open_file: ^3.3.3
 
 dev_dependencies:
   flutter_test:
