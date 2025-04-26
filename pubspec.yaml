@@ -28,6 +28,7 @@ dependencies:
   syncfusion_flutter_datepicker: ^22.2.10
   syncfusion_flutter_xlsio: ^22.2.10
   open_file: ^3.3.3
+  qr_flutter: ^4.0.0
 
 dev_dependencies:
   flutter_test:

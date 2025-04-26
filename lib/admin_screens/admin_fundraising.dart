@@ -1,8 +1,8 @@
-// screens/admin_screens/admin_fundraising.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/firestore_service.dart';
 
 class AdminFundraising extends StatefulWidget {
   @override
@@ -12,13 +12,14 @@ class AdminFundraising extends StatefulWidget {
 class _AdminFundraisingState extends State<AdminFundraising> {
   String? selectedCampaignId;
   bool isLoading = false;
+  final FirestoreService _firestoreService = FirestoreService();
   
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
     
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('fundraising_campaigns').orderBy('createdAt', descending: true).snapshots(),
+      stream: _firestoreService.getAllCampaigns(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
@@ -342,12 +343,25 @@ class _AdminFundraisingState extends State<AdminFundraising> {
                 _showEditCampaignDialog(context, campaignId, data);
               },
             ),
-            if (status == 'Active')
+            TextButton(
+              child: Text('Delete'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              onPressed: () async {
+                Navigator.pop(context);
+                await _confirmDeleteCampaign(context, campaignId);
+              },
+            ),
+            if (status != 'Active')
               TextButton(
-                child: Text('Complete'),
+                child: Text('Set as Active'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.green,
+                ),
                 onPressed: () async {
                   Navigator.pop(context);
-                  await _updateCampaignStatus(campaignId, 'Completed');
+                  await _setActiveCampaign(context, campaignId);
                 },
               ),
             if (status == 'Active')
@@ -378,16 +392,90 @@ class _AdminFundraisingState extends State<AdminFundraising> {
     );
   }
   
+  Future<void> _setActiveCampaign(BuildContext context, String campaignId) async {
+    setState(() {
+      isLoading = true;
+    });
+    
+    try {
+      await _firestoreService.setActiveCampaign(campaignId);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Campaign set as active. It will now appear on the event page.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating campaign: $e')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+  
+  Future<void> _confirmDeleteCampaign(BuildContext context, String campaignId) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Delete'),
+          content: Text('Are you sure you want to delete this campaign? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () => Navigator.pop(context),
+            ),
+            TextButton(
+              child: Text('Delete'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              onPressed: () async {
+                Navigator.pop(context);
+                await _deleteCampaign(context, campaignId);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  Future<void> _deleteCampaign(BuildContext context, String campaignId) async {
+    setState(() {
+      isLoading = true;
+    });
+    
+    try {
+      await _firestoreService.deleteCampaign(campaignId);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Campaign deleted successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting campaign: $e')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+  
   Future<void> _updateCampaignStatus(String campaignId, String newStatus) async {
     setState(() {
       isLoading = true;
     });
     
     try {
-      await FirebaseFirestore.instance.collection('fundraising_campaigns').doc(campaignId).update({
-        'status': newStatus,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _firestoreService.updateCampaign(
+        campaignId: campaignId,
+        data: {
+          'status': newStatus,
+        },
+      );
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Campaign status updated to $newStatus')),
@@ -495,19 +583,12 @@ class _AdminFundraisingState extends State<AdminFundraising> {
                 }
                 
                 try {
-                  await FirebaseFirestore.instance.collection('fundraising_campaigns').add({
-                    'title': titleController.text,
-                    'description': descriptionController.text,
-                    'targetAmount': targetAmount,
-                    'raisedAmount': 0.0,
-                    'endDate': selectedEndDate != null ? Timestamp.fromDate(selectedEndDate!) : null,
-                    'status': 'Active',
-                    'createdAt': FieldValue.serverTimestamp(),
-                    'updatedAt': FieldValue.serverTimestamp(),
-                    'createdBy': FirebaseFirestore.instance.collection('users').doc(
-                      FirebaseAuth.instance.currentUser?.uid
-                    ),
-                  });
+                  await _firestoreService.createCampaign(
+                    title: titleController.text,
+                    description: descriptionController.text,
+                    targetAmount: targetAmount,
+                    endDate: selectedEndDate,
+                  );
                   
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -635,14 +716,16 @@ class _AdminFundraisingState extends State<AdminFundraising> {
                 }
                 
                 try {
-                  await FirebaseFirestore.instance.collection('fundraising_campaigns').doc(campaignId).update({
-                    'title': titleController.text,
-                    'description': descriptionController.text,
-                    'targetAmount': targetAmount,
-                    'raisedAmount': raisedAmount,
-                    'endDate': selectedEndDate != null ? Timestamp.fromDate(selectedEndDate!) : null,
-                    'updatedAt': FieldValue.serverTimestamp(),
-                  });
+                  await _firestoreService.updateCampaign(
+                    campaignId: campaignId,
+                    data: {
+                      'title': titleController.text,
+                      'description': descriptionController.text,
+                      'targetAmount': targetAmount,
+                      'raisedAmount': raisedAmount,
+                      'endDate': selectedEndDate != null ? Timestamp.fromDate(selectedEndDate!) : null,
+                    },
+                  );
                   
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -669,6 +752,8 @@ class _AdminFundraisingState extends State<AdminFundraising> {
         return Colors.orange;
       case 'completed':
         return Colors.blue;
+      case 'inactive':
+        return Colors.grey;
       default:
         return Colors.grey;
     }
