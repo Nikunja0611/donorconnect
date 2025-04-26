@@ -160,42 +160,39 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
               ),
             ),
       bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Color(0xfffff0f4),
+        currentIndex: 2, // Fundraising selected
         selectedItemColor: Colors.pink[700],
         unselectedItemColor: Colors.pink[300],
-        selectedLabelStyle:
-            TextStyle(fontWeight: FontWeight.w600, color: Colors.pink[300]),
-        unselectedLabelStyle:
-            TextStyle(fontWeight: FontWeight.w400, color: Colors.pink[300]),
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Find Donors',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.volunteer_activism),
-            label: 'Donate',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: 0,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
-          if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => DonorConnectPage()),
-            );
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/');
+              break;
+            case 1:
+              Navigator.pushReplacementNamed(context, '/medical_help_page');
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/blood_bank_page');
+              break;
+            case 3:
+              Navigator.pushReplacementNamed(context, '/fundraising_page');
+              break;
+            case 4:
+              Navigator.pushReplacementNamed(context, '/profile_page');
+              break;
           }
-          // Add other navigation options as needed
         },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.medical_services), label: 'MedicalHelp'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.opacity), label: 'BloodBank'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.volunteer_activism), label: 'Fundraising'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
       ),
     );
   }

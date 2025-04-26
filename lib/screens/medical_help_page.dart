@@ -76,9 +76,9 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
 
     try {
       await FirebaseFirestore.instance
-          .collection('medical_help')             // ← matches your rules
+          .collection('medical_help')
           .add({
-        'requesterId': user.uid,                  // ← matches resource.data.requesterId
+        'requesterId': user.uid,
         'equipments': selectedEquipments,
         'requestedDate': Timestamp.fromDate(selectedDate),
         'timestamp': FieldValue.serverTimestamp(),
@@ -107,7 +107,23 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
-    // your existing navigation logic...
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, '/home_screen');
+        break;
+      case 1:
+        // Already on Medical Help page
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, '/blood_bank_page');
+        break;
+      case 3:
+        Navigator.pushReplacementNamed(context, '/fundraising_page');
+        break;
+      case 4:
+        Navigator.pushReplacementNamed(context, '/profile_page');
+        break;
+    }
   }
 
   @override

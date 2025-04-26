@@ -5,221 +5,313 @@ class FundraisingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions for responsive layouts
+    final Size screenSize = MediaQuery.of(context).size;
+    final bool isTablet = screenSize.width > 600;
+    
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70),
+        preferredSize: Size.fromHeight(isTablet ? 80 : 70),
         child: AppBar(
           backgroundColor: const Color(0xFFD44C6D),
           centerTitle: true,
-          title: const Text(
-            'Fund Raising',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          elevation: 4.0,
+          title: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Fundraising Event Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.pink[50],
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'ROTI BANK EVENT',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.purple,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Raktapurak Charitable Foundation is organising the "Roti Bank," where people will voluntarily donate cooked meals to support the underprivileged, promoting care and humanity.',
-                      style: TextStyle(fontSize: 14, color: Colors.black87),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(50),
-                          child: Image.asset(
-                            'assets/images/roti_bank.jpeg',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/event_details');
-                          },
-                          child: Row(
-                            children: [
-                              Text(
-                                'View More',
-                                style: TextStyle(
-                                  color: Colors.purple[600],
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Icon(Icons.arrow_forward_ios,
-                                  size: 14, color: Colors.purple),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+              Text(
+                'Fund Raising',
+                style: TextStyle(
+                  fontSize: isTablet ? 26 : 20, 
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
-
-              const SizedBox(height: 16),
-
-              // Event Images Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  eventImage('assets/images/donation1.jpeg'),
-                  eventImage('assets/images/donation2.jpeg'),
-                  eventImage('assets/images/donation3.jpeg'),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Fundraising Call-to-Action
-              Center(
-                child: GestureDetector(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'If you want to raise funds',
-                        style: TextStyle(
-                          color: Colors.purple[900],
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Icon(Icons.arrow_forward, color: Colors.purple),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // QR Code and Event Details
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
-                      spreadRadius: 1,
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Center(
-                      child: Image.asset(
-                        'assets/images/qr_code.jpeg',
-                        height: 100,
-                        width: 100,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    eventDetail(Icons.calendar_month, 'Date: 01-03-2025'),
-                    eventDetail(Icons.access_time, 'Time: 11:00 am onwards'),
-                    eventDetail(Icons.location_on, 'Venue: Shivaji Park'),
-                  ],
+              Text(
+                'Make a difference today',
+                style: TextStyle(
+                  fontSize: isTablet ? 16 : 12,
+                  fontWeight: FontWeight.w300,
                 ),
               ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 3, // Fundraising selected
-        selectedItemColor: Colors.pink[700],
-        unselectedItemColor: Colors.pink[300],
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/medical_help_page');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/blood_bank_page');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/fundraising_page');
-              break;
-            case 4:
-              Navigator.pushReplacementNamed(context, '/profile_page');
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.medical_services), label: 'MedicalHelp'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.opacity), label: 'BloodBank'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.volunteer_activism), label: 'Fundraising'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(isTablet ? 24.0 : 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header section
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+                decoration: BoxDecoration(
+                  color: Colors.pink[50],
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.volunteer_activism, color: const Color(0xFFD44C6D), size: isTablet ? 32 : 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Your generosity can change lives. Every contribution counts!',
+                        style: TextStyle(
+                          fontSize: isTablet ? 18 : 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.purple[900],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Roti Bank section
+              _enhancedInfoSection(
+                context: context,
+                image: 'assets/images/roti_bank.jpeg',
+                title: 'Roti Bank Initiative',
+                text: 'Raktpurak Charitable Foundation offers a helping hand by arranging "Roti Bank" '
+                    'in which people can voluntarily contribute cooked meals for the weaker sections of the society '
+                    'and spread the message of care and humanity. Date, place and time is informed to the members well '
+                    'in advance so that they can generously take part and share a meal. Reach out to us day or night; '
+                    'we are there to help you and your loved ones!',
+                imageLeft: false,
+                isTablet: isTablet,
+              ),
+              const SizedBox(height: 24),
+              
+              // Quote 1
+              _enhancedInfoSection(
+                context: context,
+                image: 'assets/images/donation1.jpeg',
+                title: 'Make an Impact',
+                text: '"Helping one person might not change the world, but it could change the world for one person." '
+                    'Every meal served is a step toward a kinder world.',
+                imageLeft: true,
+                isTablet: isTablet,
+              ),
+              const SizedBox(height: 24),
+              
+              // Quote 2
+              _enhancedInfoSection(
+                context: context,
+                image: 'assets/images/donation2.jpeg',
+                title: 'The Joy of Giving',
+                text: '"No one has ever become poor by giving." – Anne Frank\nJoin hands with us to feed the hungry '
+                    'and show them that humanity still thrives.',
+                imageLeft: false,
+                isTablet: isTablet,
+              ),
+              const SizedBox(height: 24),
+              
+              // Quote 3
+              _enhancedInfoSection(
+                context: context,
+                image: 'assets/images/donation3.jpeg',
+                title: 'Together We Can',
+                text: '"We cannott help everyone, but everyone can help someone." – Ronald Reagan\nLet us unite to ensure '
+                    'no one sleeps hungry tonight.',
+                imageLeft: true,
+                isTablet: isTablet,
+              ),
+              
+              const SizedBox(height: 30),
+              
+              // Call to action button
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/event_fund_page');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.3),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                    border: Border.all(color: const Color(0xFFD44C6D), width: 1.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Raise Funds For A Cause',
+                        style: TextStyle(
+                          color: Colors.purple[900],
+                          fontSize: isTablet ? 18 : 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded, color: Color(0xFFD44C6D)),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        height: 60, // Fixed height to prevent overflow
+        child: BottomNavigationBar(
+          currentIndex: 3,
+          selectedItemColor: Colors.pink[700],
+          unselectedItemColor: Colors.pink[300],
+          type: BottomNavigationBarType.fixed,
+          onTap: (index) {
+            switch (index) {
+              case 0:
+                Navigator.pushReplacementNamed(context, '/');
+                break;
+              case 1:
+                Navigator.pushReplacementNamed(context, '/medical_help_page');
+                break;
+              case 2:
+                Navigator.pushReplacementNamed(context, '/blood_bank_page');
+                break;
+              case 3:
+                // Already on fundraising page
+                break;
+              case 4:
+                Navigator.pushReplacementNamed(context, '/profile_page');
+                break;
+            }
+          },
+          items: [
+            const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.medical_services), 
+              label: isTablet ? 'Medical Help' : 'Medical'
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.opacity), 
+              label: 'Blood Bank'
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.volunteer_activism), 
+              label: isTablet ? 'Fundraising' : 'Fundraising'
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.person), 
+              label: 'Profile'
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Widget for event images
-  Widget eventImage(String imagePath) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Image.asset(
-        imagePath,
-        width: 100,
-        height: 80,
-        fit: BoxFit.cover,
-      ),
-    );
-  }
-
-  // Widget for event details
-  Widget eventDetail(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.pink[700], size: 20),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+  Widget _enhancedInfoSection({
+    required BuildContext context,
+    required String image,
+    required String title,
+    required String text,
+    required bool imageLeft,
+    required bool isTablet,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
+      padding: const EdgeInsets.all(16),
+      child: isTablet
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: imageLeft
+                  ? [
+                      _enhancedImageBox(image, isTablet),
+                      const SizedBox(width: 20),
+                      Expanded(child: _enhancedTextBox(title, text, isTablet)),
+                    ]
+                  : [
+                      Expanded(child: _enhancedTextBox(title, text, isTablet)),
+                      const SizedBox(width: 20),
+                      _enhancedImageBox(image, isTablet),
+                    ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: _enhancedImageBox(image, isTablet)),
+                const SizedBox(height: 16),
+                _enhancedTextBox(title, text, isTablet),
+              ],
+            ),
+    );
+  }
+
+  Widget _enhancedImageBox(String path, bool isTablet) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.asset(
+          path,
+          width: isTablet ? 180 : 160,
+          height: isTablet ? 180 : 160,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  Widget _enhancedTextBox(String title, String text, bool isTablet) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: isTablet ? 20 : 18,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFFD44C6D),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: isTablet ? 16 : 14,
+            height: 1.5,
+            color: Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 }

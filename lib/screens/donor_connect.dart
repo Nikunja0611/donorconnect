@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DonorConnectPage extends StatefulWidget {
   const DonorConnectPage({Key? key}) : super(key: key);
@@ -174,11 +175,11 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
       List<Donor> donorList = [];
       for (var doc in userSnapshot.docs) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        
+
         // Debug - Print the entire user document to check fields
         print("Donor data retrieved: ${doc.id}");
         print(data);
-        
+
         // Add better conditional checks to ensure we have all required fields
         if (data.containsKey('name') && data.containsKey('bloodGroup')) {
           donorList.add(Donor(
@@ -207,141 +208,158 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
   }
 
   void filterDonors() {
-  setState(() {
-    isLoading = true;
-  });
-
-  try {
-    // Start with the base query
-    Query usersRef = _firestore.collection('users').where('isDonor', isEqualTo: true);
-
-    // Add blood group filter if selected
-    if (selectedBloodGroup != 'All') {
-      usersRef = usersRef.where('bloodGroup', isEqualTo: selectedBloodGroup);
-    }
-    
-    // Add state filter if selected
-    if (selectedState != 'All') {
-      usersRef = usersRef.where('state', isEqualTo: selectedState);
-    }
-
-    // Execute the query
-    usersRef.get().then((querySnapshot) {
-      List<Donor> donors = [];
-      
-      print("Query returned ${querySnapshot.docs.length} documents");
-      
-      for (var doc in querySnapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        
-        // Debug - print each document
-        print("Processing donor: ${doc.id}");
-        print(data);
-        
-        // Filter by district client-side if needed
-        bool districtMatch = selectedDistrict == 'All' || 
-                          (data['district'] != null && data['district'] == selectedDistrict);
-        
-        if (districtMatch) {
-          donors.add(Donor(
-            id: doc.id,
-            name: data['name'] ?? 'Anonymous Donor',
-            bloodGroup: data['bloodGroup'] ?? '',
-            phone: data['phone'] ?? '',
-            state: data['state'] ?? '',
-            district: data['district'] ?? '',
-            city: data['city'] ?? '',
-            available: data['isAvailable'] ?? false,
-          ));
-        }
-      }
-      
-      setState(() {
-        filteredDonors = donors;
-        isLoading = false;
-      });
-    }).catchError((error) {
-      print("Error executing query: $error");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error searching donors: $error'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      setState(() {
-        isLoading = false;
-      });
-    });
-  } catch (e) {
-    print("Exception in filterDonors: $e");
     setState(() {
-      isLoading = false;
+      isLoading = true;
     });
-  }
-}
-  void _showReportDialog(BuildContext context, Donor donor) {
-    final TextEditingController _reportController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Report Donor'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Please provide a reason for reporting this donor:'),
-            SizedBox(height: 16),
-            TextField(
-              controller: _reportController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Enter reason for report',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+
+    try {
+      // Start with the base query
+      Query usersRef =
+          _firestore.collection('users').where('isDonor', isEqualTo: true);
+
+      // Add blood group filter if selected
+      if (selectedBloodGroup != 'All') {
+        usersRef = usersRef.where('bloodGroup', isEqualTo: selectedBloodGroup);
+      }
+
+      // Add state filter if selected
+      if (selectedState != 'All') {
+        usersRef = usersRef.where('state', isEqualTo: selectedState);
+      }
+
+      // Execute the query
+      usersRef.get().then((querySnapshot) {
+        List<Donor> donors = [];
+
+        print("Query returned ${querySnapshot.docs.length} documents");
+
+        for (var doc in querySnapshot.docs) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+          // Debug - print each document
+          print("Processing donor: ${doc.id}");
+          print(data);
+
+          // Filter by district client-side if needed
+          bool districtMatch = selectedDistrict == 'All' ||
+              (data['district'] != null &&
+                  data['district'] == selectedDistrict);
+
+          if (districtMatch) {
+            donors.add(Donor(
+              id: doc.id,
+              name: data['name'] ?? 'Anonymous Donor',
+              bloodGroup: data['bloodGroup'] ?? '',
+              phone: data['phone'] ?? '',
+              state: data['state'] ?? '',
+              district: data['district'] ?? '',
+              city: data['city'] ?? '',
+              available: data['isAvailable'] ?? false,
+            ));
+          }
+        }
+
+        setState(() {
+          filteredDonors = donors;
+          isLoading = false;
+        });
+      }).catchError((error) {
+        print("Error executing query: $error");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error searching donors: $error'),
+            backgroundColor: Colors.red,
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFFC14465),
+        );
+        setState(() {
+          isLoading = false;
+        });
+      });
+    } catch (e) {
+      print("Exception in filterDonors: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void _showReportDialog(BuildContext context, Donor donor) {
+  final TextEditingController _reportController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Report Donor'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Please provide a reason for reporting this donor:'),
+          SizedBox(height: 16),
+          TextField(
+            controller: _reportController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Enter reason for report',
+              border: OutlineInputBorder(),
             ),
-            onPressed: () {
-              // Submit report to Firestore
-              _firestore.collection('reports').add({
-                'donorId': donor.id,
-                'donorName': donor.name,
-                'reportReason': _reportController.text,
-                'reportedAt': FieldValue.serverTimestamp(),
-              }).then((_) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Report submitted successfully'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }).catchError((error) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to submit report: $error'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              });
-            },
-            child: Text('Submit'),
           ),
         ],
       ),
-    );
-  }
-
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFFC14465),
+          ),
+          onPressed: () {
+            // Get current user ID
+            final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+            
+            if (currentUserId == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('You must be logged in to report a donor'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              Navigator.pop(context);
+              return;
+            }
+            
+            // Submit report to Firestore with reporter ID
+            _firestore.collection('reports').add({
+              'donorId': donor.id,
+              'donorName': donor.name,
+              'reportReason': _reportController.text,
+              'reporterId': currentUserId,
+              'reportedAt': FieldValue.serverTimestamp(),
+            }).then((_) {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Report submitted successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }).catchError((error) {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to submit report: $error'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            });
+          },
+          child: Text('Submit'),
+        ),
+      ],
+    ),
+  );
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -459,7 +477,9 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
             child: RefreshIndicator(
               onRefresh: fetchDonors,
               child: isLoading
-                  ? Center(child: CircularProgressIndicator(color: Color(0xFFC14465)))
+                  ? Center(
+                      child:
+                          CircularProgressIndicator(color: Color(0xFFC14465)))
                   : filteredDonors.isEmpty
                       ? Center(
                           child: Text(
@@ -486,37 +506,39 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Color(0xfffff0f4),
+        currentIndex: 2, // Fundraising selected
         selectedItemColor: Colors.pink[700],
         unselectedItemColor: Colors.pink[300],
-        selectedLabelStyle:
-            TextStyle(fontWeight: FontWeight.w600, color: Colors.pink[300]),
-        unselectedLabelStyle:
-            TextStyle(fontWeight: FontWeight.w400, color: Colors.pink[300]),
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Find Donors',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.volunteer_activism),
-            label: 'Donate',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: 1, // Since this is the DonorConnect/Find Donors page
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
-          // Navigation logic would go here
-          // This is where you would navigate to different pages based on index
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/');
+              break;
+            case 1:
+              Navigator.pushReplacementNamed(context, '/medical_help_page');
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/blood_bank_page');
+              break;
+            case 3:
+              Navigator.pushReplacementNamed(context, '/fundraising_page');
+              break;
+            case 4:
+              Navigator.pushReplacementNamed(context, '/profile_page');
+              break;
+          }
         },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.medical_services), label: 'MedicalHelp'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.opacity), label: 'BloodBank'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.volunteer_activism), label: 'Fundraising'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
       ),
     );
   }
@@ -591,7 +613,7 @@ class DonorCard extends StatelessWidget {
   final VoidCallback onReport;
 
   const DonorCard({
-    Key? key, 
+    Key? key,
     required this.donor,
     required this.onReport,
   }) : super(key: key);
@@ -602,36 +624,42 @@ class DonorCard extends StatelessWidget {
     print("State: '${donor.state}'");
     print("District: '${donor.district}'");
     print("City: '${donor.city}'");
-    
+
     // Create location string with the best available data
     List<String> locationParts = [];
-    
-    if (donor.city.isNotEmpty && donor.city != 'null' && donor.city != 'undefined') {
+
+    if (donor.city.isNotEmpty &&
+        donor.city != 'null' &&
+        donor.city != 'undefined') {
       locationParts.add(donor.city);
     }
-    
-    if (donor.district.isNotEmpty && donor.district != 'All' && 
-        donor.district != 'null' && donor.district != 'undefined') {
+
+    if (donor.district.isNotEmpty &&
+        donor.district != 'All' &&
+        donor.district != 'null' &&
+        donor.district != 'undefined') {
       locationParts.add(donor.district);
     }
-    
-    if (donor.state.isNotEmpty && donor.state != 'All' && 
-        donor.state != 'null' && donor.state != 'undefined') {
+
+    if (donor.state.isNotEmpty &&
+        donor.state != 'All' &&
+        donor.state != 'null' &&
+        donor.state != 'undefined') {
       locationParts.add(donor.state);
     }
-    
+
     // If all location fields are empty or invalid, show default message
     if (locationParts.isEmpty) {
       return "Location not specified";
     }
-    
+
     return locationParts.join(', ');
   }
 
   @override
   Widget build(BuildContext context) {
     final String locationString = _getLocationString();
-    
+
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
@@ -702,14 +730,17 @@ class DonorCard extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: donor.available ? Colors.green[100] : Colors.grey[200],
+                    color:
+                        donor.available ? Colors.green[100] : Colors.grey[200],
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     donor.available ? 'Available' : 'Not Available',
                     style: TextStyle(
                       fontSize: 12,
-                      color: donor.available ? Colors.green[800] : Colors.grey[800],
+                      color: donor.available
+                          ? Colors.green[800]
+                          : Colors.grey[800],
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -721,7 +752,8 @@ class DonorCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    icon: Icon(Icons.message, color: Color(0xFF3D3366), size: 16),
+                    icon:
+                        Icon(Icons.message, color: Color(0xFF3D3366), size: 16),
                     label: Text(
                       'Message',
                       style: TextStyle(color: Color(0xFF3D3366), fontSize: 12),
@@ -752,10 +784,12 @@ class DonorCard extends StatelessWidget {
                 SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    icon: Icon(Icons.flag, color: Colors.red.shade700, size: 16),
+                    icon:
+                        Icon(Icons.flag, color: Colors.red.shade700, size: 16),
                     label: Text(
                       'Report',
-                      style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                      style:
+                          TextStyle(color: Colors.red.shade700, fontSize: 12),
                     ),
                     onPressed: onReport,
                     style: OutlinedButton.styleFrom(

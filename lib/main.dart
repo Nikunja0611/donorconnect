@@ -1,3 +1,4 @@
+import 'package:donorconnect/screens/achievement_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -17,7 +18,9 @@ import 'screens/donor_connect.dart';
 import 'screens/welcome_user.dart';
 import 'screens/donation_history_page.dart';
 import 'screens/admin_login_screen.dart'; // Import admin login screen
-import 'screens/admin_dashboard.dart'; // Import admin dashboard
+import 'screens/admin_dashboard.dart';
+import 'screens/event_fund_page.dart';
+import 'screens/achievement_page.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -40,9 +43,8 @@ class MyApp extends StatelessWidget {
           create: (_) => DonationService(),
         ),
         StreamProvider(
-          create: (context) => FirebaseFirestore.instance
-              .collection('users')
-              .snapshots(),
+          create: (context) =>
+              FirebaseFirestore.instance.collection('users').snapshots(),
           initialData: null,
         ),
       ],
@@ -84,16 +86,21 @@ class MyApp extends StatelessWidget {
           '/fundraising_page': (context) => FundraisingPage(),
           '/profile_page': (context) => ProfilePage(),
           '/about_us_page': (context) => AboutUsPage(),
+          '/achievement_page':(context) => AchievementPage(),
           '/donor_connect_page': (context) => DonorConnectPage(),
           '/welcome_user': (context) => WelcomeUserPage(),
           '/donation_history_page': (context) => DonationHistoryPage(),
-          '/admin_login': (context) => AdminLoginScreen(), // Added admin login route
-          '/admin_dashboard': (context) => AdminDashboard(), // Added admin dashboard route
+          '/event_fund_page':(context)=> EventFundPage(),
+          '/admin_login': (context) =>
+              AdminLoginScreen(), // Added admin login route
+          '/admin_dashboard': (context) =>
+              AdminDashboard(), // Added admin dashboard route
         },
         onUnknownRoute: (settings) {
           return MaterialPageRoute(
             builder: (context) => Scaffold(
-              body: Center(child: Text("404! Page not found: ${settings.name}")),
+              body:
+                  Center(child: Text("404! Page not found: ${settings.name}")),
             ),
           );
         },
