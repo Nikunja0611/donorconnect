@@ -68,16 +68,20 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
   }
 
   Widget _buildFilterBar() {
+    // Determine if we're on a small screen
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    
     return Card(
       margin: EdgeInsets.all(8),
       child: Padding(
         padding: EdgeInsets.all(8),
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+            // Use column instead of row for small screens
+            isSmallScreen 
+            ? Column(
+                children: [
+                  DropdownButtonFormField<String>(
                     value: _selectedBloodGroup,
                     items: ['All', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
                         .map((group) => DropdownMenuItem(
@@ -88,10 +92,8 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
                     onChanged: (value) => setState(() => _selectedBloodGroup = value!),
                     decoration: InputDecoration(labelText: 'Blood Group'),
                   ),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+                  SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
                     value: _selectedStatus,
                     items: ['All', 'Available', 'Not Available', 'Suspended']
                         .map((status) => DropdownMenuItem(
@@ -102,41 +104,112 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
                     onChanged: (value) => setState(() => _selectedStatus = value!),
                     decoration: InputDecoration(labelText: 'Status'),
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedBloodGroup,
+                      items: ['All', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                          .map((group) => DropdownMenuItem(
+                                value: group,
+                                child: Text(group),
+                              ))
+                          .toList(),
+                      onChanged: (value) => setState(() => _selectedBloodGroup = value!),
+                      decoration: InputDecoration(labelText: 'Blood Group'),
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedStatus,
+                      items: ['All', 'Available', 'Not Available', 'Suspended']
+                          .map((status) => DropdownMenuItem(
+                                value: status,
+                                child: Text(status),
+                              ))
+                          .toList(),
+                      onChanged: (value) => setState(() => _selectedStatus = value!),
+                      decoration: InputDecoration(labelText: 'Status'),
+                    ),
+                  ),
+                ],
+              ),
             SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
+            // Make search and date filter responsive
+            isSmallScreen 
+            ? Column(
+                children: [
+                  TextField(
                     decoration: InputDecoration(
                       labelText: 'Search',
                       prefixIcon: Icon(Icons.search),
                     ),
                     onChanged: (value) => setState(() => _searchQuery = value),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.calendar_today),
-                  onPressed: () => showDialog(
-                    context: context,
-                    builder: (context) => _buildDateRangePicker(),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.calendar_today),
+                        label: Text('Select Dates'),
+                        onPressed: () => showDialog(
+                          context: context,
+                          builder: (context) => _buildDateRangePicker(),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      if (_startDate != null || _endDate != null)
+                        Expanded(
+                          child: Chip(
+                            label: Text(
+                              '${_startDate != null ? DateFormat('MMM d').format(_startDate!) : ''}'
+                              '${_endDate != null ? ' - ${DateFormat('MMM d').format(_endDate!)}' : ''}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onDeleted: () => setState(() {
+                              _startDate = null;
+                              _endDate = null;
+                            }),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
-                if (_startDate != null || _endDate != null)
-                  Chip(
-                    label: Text(
-                      '${_startDate != null ? DateFormat('MMM d').format(_startDate!) : ''}'
-                      '${_endDate != null ? ' - ${DateFormat('MMM d').format(_endDate!)}' : ''}',
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Search',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (value) => setState(() => _searchQuery = value),
                     ),
-                    onDeleted: () => setState(() {
-                      _startDate = null;
-                      _endDate = null;
-                    }),
                   ),
-              ],
-            ),
+                  IconButton(
+                    icon: Icon(Icons.calendar_today),
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (context) => _buildDateRangePicker(),
+                    ),
+                  ),
+                  if (_startDate != null || _endDate != null)
+                    Chip(
+                      label: Text(
+                        '${_startDate != null ? DateFormat('MMM d').format(_startDate!) : ''}'
+                        '${_endDate != null ? ' - ${DateFormat('MMM d').format(_endDate!)}' : ''}',
+                      ),
+                      onDeleted: () => setState(() {
+                        _startDate = null;
+                        _endDate = null;
+                      }),
+                    ),
+                ],
+              ),
           ],
         ),
       ),
@@ -190,6 +263,7 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
               
               final bool isAvailable = data['isAvailable'] ?? false;
               final String accountStatus = data['accountStatus'] ?? 'active';
+              final isSmallScreen = MediaQuery.of(context).size.width < 600;
               
               return Card(
                 margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -200,23 +274,47 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
                   ),
                   title: Text(data['name'] ?? 'No Name'),
                   subtitle: Text(data['email'] ?? 'No Email'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Chip(
-                        label: Text(isAvailable ? 'Available' : 'Not Available'),
-                        backgroundColor: isAvailable 
-                            ? Colors.green.withOpacity(0.2) 
-                            : Colors.orange.withOpacity(0.2),
-                      ),
-                      SizedBox(width: 4),
-                      if (accountStatus == 'suspended')
-                        Chip(
-                          label: Text('Suspended'),
-                          backgroundColor: Colors.red.withOpacity(0.2),
+                  trailing: isSmallScreen
+                      ? Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Chip(
+                              label: Text(
+                                isAvailable ? 'Available' : 'Not Available',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                              backgroundColor: isAvailable 
+                                  ? Colors.green.withOpacity(0.2) 
+                                  : Colors.orange.withOpacity(0.2),
+                              padding: EdgeInsets.zero,
+                              labelPadding: EdgeInsets.symmetric(horizontal: 4),
+                            ),
+                            if (accountStatus == 'suspended')
+                              Chip(
+                                label: Text('Suspended', style: TextStyle(fontSize: 10)),
+                                backgroundColor: Colors.red.withOpacity(0.2),
+                                padding: EdgeInsets.zero,
+                                labelPadding: EdgeInsets.symmetric(horizontal: 4),
+                              ),
+                          ],
+                        )
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Chip(
+                              label: Text(isAvailable ? 'Available' : 'Not Available'),
+                              backgroundColor: isAvailable 
+                                  ? Colors.green.withOpacity(0.2) 
+                                  : Colors.orange.withOpacity(0.2),
+                            ),
+                            SizedBox(width: 4),
+                            if (accountStatus == 'suspended')
+                              Chip(
+                                label: Text('Suspended'),
+                                backgroundColor: Colors.red.withOpacity(0.2),
+                              ),
+                          ],
                         ),
-                    ],
-                  ),
                   children: [
                     Padding(
                       padding: EdgeInsets.all(16),
@@ -231,26 +329,49 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
                                   ? DateFormat('MMM d, y').format((data['lastDonationDate'] as Timestamp).toDate())
                                   : 'Never'),
                           SizedBox(height: 10),
-                          Row(
-                            children: [
-                              ElevatedButton(
-                                child: Text('View Donation History'),
-                                onPressed: () => _showDonationHistory(donor.id, data['name']),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.deepPurple,
-                                  foregroundColor: Colors.white,
+                          // Make buttons stack vertically on small screens
+                          isSmallScreen
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    ElevatedButton(
+                                      child: Text('View Donation History'),
+                                      onPressed: () => _showDonationHistory(donor.id, data['name']),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.deepPurple,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    ElevatedButton(
+                                      child: Text(isAvailable ? 'Set Not Available' : 'Set Available'),
+                                      onPressed: () => _toggleDonorAvailability(donor.id, !isAvailable),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isAvailable ? Colors.orange : Colors.green,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  children: [
+                                    ElevatedButton(
+                                      child: Text('View Donation History'),
+                                      onPressed: () => _showDonationHistory(donor.id, data['name']),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.deepPurple,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                    ),
+                                    SizedBox(width: 10),
+                                    ElevatedButton(
+                                      child: Text(isAvailable ? 'Set Not Available' : 'Set Available'),
+                                      onPressed: () => _toggleDonorAvailability(donor.id, !isAvailable),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isAvailable ? Colors.orange : Colors.green,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              SizedBox(width: 10),
-                              ElevatedButton(
-                                child: Text(isAvailable ? 'Set Not Available' : 'Set Available'),
-                                onPressed: () => _toggleDonorAvailability(donor.id, !isAvailable),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isAvailable ? Colors.orange : Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),
@@ -281,6 +402,8 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
   }
 
   Widget _buildReportsList() {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    
     return Column(
       children: [
         Padding(
@@ -327,29 +450,71 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
                   final report = reports[index];
                   final data = report.data() as Map<String, dynamic>;
                   
+                  // Use reporterName directly instead of showing "Unknown"
+                  final reporterName = data['reporterName'] ?? '';
+                  
                   return Card(
                     margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                       side: BorderSide(color: Colors.deepPurple.withOpacity(0.5), width: 1),
                     ),
-                    child: ListTile(
-                      leading: Icon(Icons.report_problem, color: Colors.deepPurple),
-                      title: Text(data['donorName'] ?? 'Unknown Donor'),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Reported by: ${data['reporterName'] ?? 'Unknown'}'),
-                          Text('Reason: ${(data['reportReason'] ?? '').length > 50 
-                              ? '${data['reportReason'].substring(0, 50)}...' 
-                              : data['reportReason'] ?? 'No reason provided'}'),
-                        ],
-                      ),
-                      trailing: data['timestamp'] != null
-                          ? Text(DateFormat('MMM d').format((data['timestamp'] as Timestamp).toDate()))
-                          : null,
-                      onTap: () => _showReportDetails(report.id, data),
-                    ),
+                    child: isSmallScreen
+                        // Different layout for small screens
+                        ? Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.report_problem, color: Colors.deepPurple),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        data['donorName'] ?? 'Unknown Donor',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 4),
+                                Text('Reported by: $reporterName'),
+                                Text(
+                                  'Reason: ${(data['reportReason'] ?? '').length > 50 
+                                      ? '${data['reportReason'].substring(0, 50)}...' 
+                                      : data['reportReason'] ?? 'No reason provided'}',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                ),
+                                SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton(
+                                      child: Text('View Details'),
+                                      onPressed: () => _showReportDetails(report.id, data),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          )
+                        // Original layout for larger screens
+                        : ListTile(
+                            leading: Icon(Icons.report_problem, color: Colors.deepPurple),
+                            title: Text(data['donorName'] ?? 'Unknown Donor'),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Reported by: $reporterName'),
+                                Text('Reason: ${(data['reportReason'] ?? '').length > 50 
+                                    ? '${data['reportReason'].substring(0, 50)}...' 
+                                    : data['reportReason'] ?? 'No reason provided'}'),
+                              ],
+                            ),
+                            onTap: () => _showReportDetails(report.id, data),
+                          ),
                   );
                 },
               );
@@ -378,13 +543,15 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
         .orderBy('timestamp', descending: true)
         .get();
 
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('$userName\'s Donation History'),
         content: SizedBox(
           width: double.maxFinite,
-          height: MediaQuery.of(context).size.height * 0.6,
+          height: MediaQuery.of(context).size.height * (isSmallScreen ? 0.5 : 0.6),
           child: donations.docs.isEmpty
               ? Center(child: Text('No donation history found'))
               : ListView.builder(
@@ -395,11 +562,28 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
                     final data = donation.data();
                     final date = (data['timestamp'] as Timestamp?)?.toDate();
                     
-                    return ListTile(
-                      title: Text(data['bloodBank'] ?? 'Unknown Location'),
-                      subtitle: Text('${data['amount']} units on ${date != null ? DateFormat('MMM d, y').format(date) : 'unknown date'}'),
-                      trailing: Text(data['bloodGroup'] ?? '?'),
-                    );
+                    return isSmallScreen
+                        ? Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  data['bloodBank'] ?? 'Unknown Location', 
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text('${data['amount']} units'),
+                                Text('${date != null ? DateFormat('MMM d, y').format(date) : 'unknown date'}'),
+                                Text('Blood Group: ${data['bloodGroup'] ?? '?'}'),
+                                Divider(),
+                              ],
+                            ),
+                          )
+                        : ListTile(
+                            title: Text(data['bloodBank'] ?? 'Unknown Location'),
+                            subtitle: Text('${data['amount']} units on ${date != null ? DateFormat('MMM d, y').format(date) : 'unknown date'}'),
+                            trailing: Text(data['bloodGroup'] ?? '?'),
+                          );
                   },
                 ),
         ),
@@ -445,6 +629,8 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
       }
     }
 
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -465,38 +651,51 @@ class _AdminBloodBankState extends State<AdminBloodBank> with SingleTickerProvid
               
               Divider(height: 20),
               
-              _buildInfoRow('Reporter', data['reporterName'] ?? reporterData['name'] ?? 'Unknown'),
+              _buildInfoRow('Reporter', data['reporterName'] ?? reporterData['name'] ?? ''),
               _buildInfoRow('Reporter Email', reporterData['email'] ?? 'Unknown'),
               _buildInfoRow('Reporter Phone', reporterData['phone'] ?? 'Not provided'),
               
               Divider(height: 20),
               
               _buildInfoRow('Report Reason', data['reportReason'] ?? 'No reason provided'),
-              _buildInfoRow('Date Reported', 
-                  (data['timestamp'] as Timestamp?)?.toDate() != null 
-                      ? DateFormat('MMM d, y').format((data['timestamp'] as Timestamp).toDate())
-                      : 'Unknown'),
-              _buildInfoRow('Status', data['status'] ?? 'pending'),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.deepPurple,
-            ),
-          ),
-          if (data['status'] == 'pending')
-            TextButton(
-              child: Text('Dismiss Report'),
-              onPressed: () => _updateReportStatus(reportId, 'dismissed'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey,
-              ),
-            ),
-        ],
+        actions: isSmallScreen 
+            ? <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Close'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.deepPurple,
+                  ),
+                ),
+                if (data['status'] == 'pending')
+                  TextButton(
+                    child: Text('Dismiss Report'),
+                    onPressed: () => _updateReportStatus(reportId, 'dismissed'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey,
+                    ),
+                  ),
+              ]
+            : <Widget>[
+                if (data['status'] == 'pending')
+                  TextButton(
+                    child: Text('Dismiss Report'),
+                    onPressed: () => _updateReportStatus(reportId, 'dismissed'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey,
+                    ),
+                  ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Close'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.deepPurple,
+                  ),
+                ),
+              ],
       ),
     );
   }
