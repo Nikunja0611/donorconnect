@@ -10,27 +10,85 @@ class DonationHistoryPage extends StatefulWidget {
 
 class _DonationHistoryPageState extends State<DonationHistoryPage> {
   final DonationService _donationService = DonationService();
-  
+  final int _restPeriodDays = 100; // Standard rest period between donations
+  String _motivationalQuote =
+      "Your generosity flows through the veins of those you've never met.";
+
   @override
   void initState() {
     super.initState();
     // Initialize Intl
     Intl.defaultLocale = 'en_US';
     print('DonationHistoryPage initialized');
+    _loadRandomQuote();
   }
-  
+
+  void _loadRandomQuote() {
+    final List<String> quotes = [
+      "Your generosity flows through the veins of those you've never met.",
+      "Every drop you donate creates ripples of hope.",
+      "Rest now, hero. Your blood is already saving lives.",
+      "The best gift is the one that keeps someone alive.",
+      "Your 100-day journey is preparing you for your next heroic act.",
+    ];
+
+    setState(() {
+      _motivationalQuote = quotes[DateTime.now().millisecond % quotes.length];
+    });
+  }
+
+  // Format date in display format
+  String _formatDisplayDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+
+  // Calculate next eligible donation date
+  DateTime _calculateNextEligibleDate(DateTime donationDate) {
+    return donationDate.add(Duration(days: _restPeriodDays));
+  }
+
+  // Check if user is currently eligible to donate
+  bool _isEligibleToDonate(DateTime donationDate) {
+    DateTime nextEligibleDate = _calculateNextEligibleDate(donationDate);
+    return DateTime.now().isAfter(nextEligibleDate);
+  }
+
+  // Update user's availability status based on donation history
+  Future<void> _updateUserAvailabilityStatus(DateTime mostRecentDate) async {
+    try {
+      bool isEligible = _isEligibleToDonate(mostRecentDate);
+      DateTime nextDonationDate = _calculateNextEligibleDate(mostRecentDate);
+
+      // Update user document in Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_donationService.getUserId())
+          .update({
+        'isAvailable': isEligible,
+        'nextDonationDate': nextDonationDate, // Store as Timestamp
+        'lastDonationDate': mostRecentDate, // Store as Timestamp
+      });
+
+      print(
+          'Updated availability status: $isEligible, next date: ${_formatDisplayDate(nextDonationDate)}');
+    } catch (e) {
+      print('Error updating availability status: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     print('Building DonationHistoryPage');
     print('User ID: ${_donationService.getUserId()}');
-    
+
     // Authentication check
     if (_donationService.getUserId() == null) {
       return Scaffold(
         backgroundColor: Color(0xFFF8ECF1),
         appBar: AppBar(
           backgroundColor: Color(0xFFD95373),
-          title: Text('Donation History', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: Text('Donation History',
+              style: TextStyle(fontWeight: FontWeight.bold)),
           centerTitle: true,
         ),
         body: Center(
@@ -60,12 +118,13 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
         ),
       );
     }
-    
+
     return Scaffold(
       backgroundColor: Color(0xFFF8ECF1),
       appBar: AppBar(
         backgroundColor: Color(0xFFD95373),
-        title: Text('Donation History', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Donation History',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -74,9 +133,10 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
           // Connection state handling
           if (snapshot.connectionState == ConnectionState.waiting) {
             print('Waiting for data...');
-            return Center(child: CircularProgressIndicator(color: Color(0xFFC14465)));
+            return Center(
+                child: CircularProgressIndicator(color: Color(0xFFC14465)));
           }
-          
+
           // Error handling with more details
           if (snapshot.hasError) {
             print('Stream error: ${snapshot.error}');
@@ -104,7 +164,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
               ),
             );
           }
-          
+
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             print('No donation data available');
             return Center(
@@ -132,7 +192,8 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFFD95373),
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
                       ),
@@ -142,8 +203,116 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
               ),
             );
           }
-          
+
           print('Found ${snapshot.data!.docs.length} donation records');
+
+          // Get the most recent donation to calculate availability
+          var sortedDocs = snapshot.data!.docs.toList()
+            ..sort((a, b) {
+              var aData = a.data() as Map<String, dynamic>;
+              var bData = b.data() as Map<String, dynamic>;
+
+              // Get timestamp or date string from documents
+              DateTime aDate = _getDonationDateTime(aData);
+              DateTime bDate = _getDonationDateTime(bData);
+
+              return bDate.compareTo(aDate); // Descending order
+            });
+
+          // Process most recent donation
+          if (sortedDocs.isNotEmpty) {
+            var mostRecentDonation =
+                sortedDocs.first.data() as Map<String, dynamic>;
+            DateTime mostRecentDate = _getDonationDateTime(mostRecentDonation);
+
+            // Update user availability status
+            _updateUserAvailabilityStatus(mostRecentDate);
+
+            // Calculate if eligible and next donation date
+            bool isEligible = _isEligibleToDonate(mostRecentDate);
+            DateTime nextDonationDate =
+                _calculateNextEligibleDate(mostRecentDate);
+
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  _buildDonationSummary(snapshot.data!.docs),
+
+                  // Show availability status and next donation date
+                  Container(
+                    margin: EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isEligible
+                          ? Colors.green.shade50
+                          : Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: isEligible
+                            ? Colors.green.shade300
+                            : Colors.amber.shade300,
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              isEligible
+                                  ? Icons.check_circle
+                                  : Icons.hourglass_top,
+                              color: isEligible
+                                  ? Colors.green
+                                  : Colors.amber.shade700,
+                              size: 22,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                isEligible
+                                    ? 'You are eligible to donate blood!'
+                                    : 'You need to wait until ${_formatDisplayDate(nextDonationDate)} to donate again',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isEligible
+                                      ? Colors.green.shade700
+                                      : Colors.amber.shade900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          _motivationalQuote,
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: sortedDocs.length,
+                      itemBuilder: (context, index) {
+                        return _buildDonationCard(sortedDocs[index]);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          // Default return if no date processing needed
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -154,8 +323,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                   child: ListView.builder(
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
-                      var donation = snapshot.data!.docs[index];
-                      return _buildDonationCard(donation);
+                      return _buildDonationCard(snapshot.data!.docs[index]);
                     },
                   ),
                 ),
@@ -171,10 +339,41 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
       ),
     );
   }
-  
+
+  // Get DateTime from donation data (handling both Timestamp and string formats)
+  DateTime _getDonationDateTime(Map<String, dynamic> donationData) {
+    // Check if timestamp field exists
+    if (donationData['timestamp'] is Timestamp) {
+      return (donationData['timestamp'] as Timestamp).toDate();
+    }
+    // Check if date field exists and is timestamp
+    else if (donationData['date'] is Timestamp) {
+      return (donationData['date'] as Timestamp).toDate();
+    }
+    // Check if date field exists and is string
+    else if (donationData['date'] is String) {
+      String dateStr = donationData['date'];
+      try {
+        // Parse date in format DD/MM/YYYY
+        List<String> parts = dateStr.split('/');
+        if (parts.length == 3) {
+          return DateTime(
+            int.parse(parts[2]), // Year
+            int.parse(parts[1]), // Month
+            int.parse(parts[0]), // Day
+          );
+        }
+      } catch (e) {
+        print('Error parsing date string: $e');
+      }
+    }
+    // Default fallback
+    return DateTime.now();
+  }
+
   Widget _buildDonationSummary(List<QueryDocumentSnapshot> donations) {
     int totalDonations = donations.length;
-    
+
     // Calculate total amount donated with safer conversion
     double totalAmount = 0;
     for (var donation in donations) {
@@ -183,7 +382,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
         totalAmount += (data['amount'] as num).toDouble();
       }
     }
-    
+
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -228,7 +427,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
       ),
     );
   }
-  
+
   Widget _buildSummaryItem(String title, String value, IconData icon) {
     return Column(
       children: [
@@ -257,17 +456,22 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
       ],
     );
   }
-  
+
   Widget _buildDonationCard(QueryDocumentSnapshot donation) {
     try {
       final data = donation.data() as Map<String, dynamic>;
-      final date = data['date'] as String? ?? 'No date';
+      
+      // Get the date from the document
+      DateTime donationDate = _getDonationDateTime(data);
+      String displayDate = _formatDisplayDate(donationDate);
+      
       final location = data['location'] as String? ?? 'Unknown location';
       final bloodBank = data['bloodBank'] as String? ?? 'Unknown blood bank';
-      final amount = (data['amount'] is num) ? (data['amount'] as num).toDouble() : 0.0;
-      final hasReceipt = data['receiptData'] != null && 
-                        data['receiptData'].toString().isNotEmpty;
-      
+      final amount =
+          (data['amount'] is num) ? (data['amount'] as num).toDouble() : 0.0;
+      final hasReceipt = data['receiptData'] != null &&
+          data['receiptData'].toString().isNotEmpty;
+
       return Container(
         margin: EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
@@ -338,7 +542,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                date,
+                displayDate,
                 style: TextStyle(
                   color: Colors.black54,
                   fontSize: 14,
@@ -346,7 +550,8 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
               ),
               SizedBox(height: 5),
               GestureDetector(
-                onTap: () => _showDonationOptions(context, donation.id, hasReceipt),
+                onTap: () =>
+                    _showDonationOptions(context, donation.id, hasReceipt),
                 child: Icon(
                   Icons.more_vert,
                   color: Colors.black54,
@@ -370,8 +575,9 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
       );
     }
   }
-  
-  void _showDonationOptions(BuildContext context, String donationId, bool hasReceipt) {
+
+  void _showDonationOptions(
+      BuildContext context, String donationId, bool hasReceipt) {
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -414,21 +620,21 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
       },
     );
   }
-  
+
   void _viewReceipt(String donationId) async {
     try {
       final donation = await _donationService.getDonationById(donationId);
-      
+
       if (!donation.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Receipt not found')),
         );
         return;
       }
-      
+
       final data = donation.data() as Map<String, dynamic>;
       final receiptData = data['receiptData'];
-      
+
       if (receiptData != null && receiptData.toString().isNotEmpty) {
         showDialog(
           context: context,
@@ -469,32 +675,37 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
       );
     }
   }
-  
+
   void _editDonation(String donationId) async {
     try {
       // Get donation data
       final donation = await _donationService.getDonationById(donationId);
-      
+
       if (!donation.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Donation not found')),
         );
         return;
       }
-      
+
       final data = donation.data() as Map<String, dynamic>;
-      
+      DateTime donationDate = _getDonationDateTime(data);
+
       // Create controllers with pre-filled data
       final _formKey = GlobalKey<FormState>();
-      final dateController = TextEditingController(text: data['date'] ?? '');
-      final locationController = TextEditingController(text: data['location'] ?? '');
-      final bloodBankController = TextEditingController(text: data['bloodBank'] ?? '');
+      final dateController = TextEditingController(text: _formatDisplayDate(donationDate));
+      final locationController =
+          TextEditingController(text: data['location'] ?? '');
+      final bloodBankController =
+          TextEditingController(text: data['bloodBank'] ?? '');
       final amountController = TextEditingController(
-        text: data['amount'] != null ? (data['amount'] as num).toString() : '0.0'
-      );
+          text: data['amount'] != null
+              ? (data['amount'] as num).toString()
+              : '0.0');
       final notesController = TextEditingController(text: data['notes'] ?? '');
-      final receiptDataController = TextEditingController(text: data['receiptData'] ?? '');
-      
+      final receiptDataController =
+          TextEditingController(text: data['receiptData'] ?? '');
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -510,12 +721,14 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                     decoration: InputDecoration(
                       labelText: 'Date',
                       suffixIcon: Icon(Icons.calendar_today),
+                      helperText:
+                          'Note: This will update your availability status',
                     ),
                     readOnly: true,
                     onTap: () async {
                       final pickedDate = await showDatePicker(
                         context: context,
-                        initialDate: DateTime.now(),
+                        initialDate: donationDate,
                         firstDate: DateTime(2000),
                         lastDate: DateTime.now(),
                         builder: (context, child) {
@@ -529,9 +742,9 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                           );
                         },
                       );
-                      
+
                       if (pickedDate != null) {
-                        dateController.text = DateFormat('dd/MM/yyyy').format(pickedDate);
+                        dateController.text = _formatDisplayDate(pickedDate);
                       }
                     },
                     validator: (value) => value == null || value.isEmpty
@@ -609,19 +822,26 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
               onPressed: () async {
                 if (_formKey.currentState!.validate()) {
                   try {
+                    // Parse the date string back to DateTime
+                    DateTime selectedDate = _parseDateString(dateController.text);
+                    
                     await _donationService.updateDonation(donationId, {
-                      'date': dateController.text,
+                      'date': selectedDate, // Store as timestamp
+                      'timestamp': selectedDate, // Also add timestamp field
                       'location': locationController.text,
                       'bloodBank': bloodBankController.text,
                       'amount': double.parse(amountController.text),
                       'notes': notesController.text,
                       'receiptData': receiptDataController.text,
                     });
-                    
+
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Donation updated successfully')),
                     );
+
+                    // Refresh the screen to recalculate eligibility
+                    setState(() {});
                   } catch (e) {
                     print('Error updating donation: $e');
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -645,7 +865,24 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
       );
     }
   }
-  
+
+  // Parse date string in format DD/MM/YYYY back to DateTime
+  DateTime _parseDateString(String dateStr) {
+    try {
+      List<String> parts = dateStr.split('/');
+      if (parts.length == 3) {
+        return DateTime(
+          int.parse(parts[2]), // Year
+          int.parse(parts[1]), // Month
+          int.parse(parts[0]), // Day
+        );
+      }
+    } catch (e) {
+      print('Error parsing date string: $e');
+    }
+    return DateTime.now(); // Fallback
+  }
+
   void _confirmDeleteDonation(String donationId) {
     showDialog(
       context: context,
@@ -665,6 +902,8 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Donation deleted successfully')),
                 );
+                // Refresh the screen to recalculate eligibility
+                setState(() {});
               } catch (e) {
                 print('Error deleting donation: $e');
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -681,7 +920,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
       ),
     );
   }
-  
+
   void _showAddDonationDialog(BuildContext context) {
     final _formKey = GlobalKey<FormState>();
     final dateController = TextEditingController();
@@ -690,7 +929,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
     final amountController = TextEditingController();
     final notesController = TextEditingController();
     final receiptDataController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -725,14 +964,13 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                         );
                       },
                     );
-                    
+
                     if (pickedDate != null) {
-                      dateController.text = DateFormat('dd/MM/yyyy').format(pickedDate);
+                      dateController.text = _formatDisplayDate(pickedDate);
                     }
                   },
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Please enter date'
-                      : null,
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Please enter date' : null,
                 ),
                 SizedBox(height: 16),
                 TextFormField(
@@ -741,9 +979,8 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                     labelText: 'Location',
                     suffixIcon: Icon(Icons.location_on),
                   ),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Please enter location'
-                      : null,
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Please enter location' : null,
                 ),
                 SizedBox(height: 16),
                 TextFormField(
@@ -752,9 +989,8 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                     labelText: 'Blood Bank/Hospital',
                     suffixIcon: Icon(Icons.local_hospital),
                   ),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Please enter blood bank name'
-                      : null,
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Please enter blood bank name' : null,
                 ),
                 SizedBox(height: 16),
                 TextFormField(
@@ -804,7 +1040,7 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
           ElevatedButton(
             onPressed: () async {
               if (_formKey.currentState!.validate()) {
-                try {
+                try {  
                   await _donationService.addDonation(
                     date: dateController.text,
                     location: locationController.text,
@@ -818,6 +1054,9 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Donation added successfully')),
                   );
+
+                  // Refresh the screen to recalculate eligibility
+                  setState(() {});
                 } catch (e) {
                   print('Error adding donation: $e');
                   ScaffoldMessenger.of(context).showSnackBar(

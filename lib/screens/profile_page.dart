@@ -53,7 +53,7 @@ class ProfilePageState extends State<ProfilePage> {
     
     switch (index) {
       case 0:
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/home_screen');
         break;
       case 1:
         Navigator.pushReplacementNamed(context, '/medical_help_page');
@@ -80,7 +80,11 @@ class ProfilePageState extends State<ProfilePage> {
       backgroundColor: Color(0xFFF8ECF1),
       appBar: AppBar(
         backgroundColor: Color(0xFFD95373),
-        title: Text('Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Profile',  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,),),
         centerTitle: true,
         actions: [
           IconButton(

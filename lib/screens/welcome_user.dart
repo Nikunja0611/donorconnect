@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import 'donation_history_page.dart';
 import 'donor_connect.dart'; // Import the DonorConnectPage
 
@@ -15,6 +16,9 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
   bool _isLoading = true;
   String _userName = "User";
   bool _isDonor = false; // Track if user is a donor
+  bool _isAvailable = true; // Track if user can donate
+  String? _nextDonationDate; // Store next eligible donation date
+  String _inspirationalQuote = ""; // Store a motivational quote
 
   @override
   void initState() {
@@ -41,6 +45,11 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
           setState(() {
             _userName = userData['name'] ?? "User";
             _isDonor = userData['isDonor'] ?? false; // Get isDonor status
+            _isAvailable = userData['isAvailable'] ?? true; // Get availability status
+            _nextDonationDate = userData['nextDonationDate']; // Get next donation date
+            
+            // Set an inspirational quote based on availability
+            _setInspirationalQuote();
           });
         } else {
           // This is a new user - document doesn't exist yet
@@ -54,6 +63,63 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
         _isLoading = false;
       });
     }
+  }
+  
+  // Set an inspirational quote based on user's donation status
+  void _setInspirationalQuote() {
+    List<String> availableQuotes = [
+      "Your blood donation is a precious gift that can save up to three lives!",
+      "Be a hero today - donate blood, save lives!",
+      "A single drop of your blood can make a huge difference in someone's life.",
+      "Giving blood is giving the gift of life.",
+    ];
+    
+    List<String> waitingQuotes = [
+      "Thank you for your donation! Your body is regenerating - take care of yourself.",
+      "Heroes need rest too. Your next chance to save lives is coming soon!",
+      "Your recent donation already made a difference. We'll see you again soon!",
+      "Rest and recover - your body is preparing for your next heroic donation.",
+    ];
+    
+    if (_isDonor) {
+      if (_isAvailable) {
+        // Randomly select an available quote
+        _inspirationalQuote = availableQuotes[DateTime.now().millisecond % availableQuotes.length];
+      } else {
+        // Randomly select a waiting quote
+        _inspirationalQuote = waitingQuotes[DateTime.now().millisecond % waitingQuotes.length];
+      }
+    } else {
+      // Default quote for new users
+      _inspirationalQuote = "Join our blood donation community and become a lifesaver!";
+    }
+  }
+  
+  // Helper method to parse date strings
+  DateTime _parseDate(String dateStr) {
+    try {
+      // Parse date in format DD/MM/YYYY
+      List<String> parts = dateStr.split('/');
+      if (parts.length == 3) {
+        return DateTime(
+          int.parse(parts[2]), // Year
+          int.parse(parts[1]), // Month
+          int.parse(parts[0]), // Day
+        );
+      }
+    } catch (e) {
+      print('Error parsing date: $e');
+    }
+    return DateTime.now(); // Return current date as fallback
+  }
+  
+  // Calculate days until next eligible donation
+  int _getDaysRemaining() {
+    if (_nextDonationDate == null) return 0;
+    
+    DateTime nextDate = _parseDate(_nextDonationDate!);
+    DateTime today = DateTime.now();
+    return nextDate.difference(today).inDays;
   }
 
   @override
@@ -88,6 +154,45 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                     ),
                   ),
                   SizedBox(height: 10),
+                  
+                  // Inspirational quote container
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Container(
+                      padding: EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Color(0xFFC14465).withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        _inspirationalQuote,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF3D3366),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  SizedBox(height: 10),
+                  
+                  // Show donation status for donors
+                  if (_isDonor && !_isAvailable && _nextDonationDate != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Text(
+                        'You can donate again on: $_nextDonationDate (${_getDaysRemaining()} days)',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFFC14465),
+                        ),
+                      ),
+                    ),
+                  
                   if (!_isDonor)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -160,7 +265,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
               ),
             ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2, // Fundraising selected
+        currentIndex: 2, // BloodBank selected
         selectedItemColor: Colors.pink[700],
         unselectedItemColor: Colors.pink[300],
         type: BottomNavigationBarType.fixed,
@@ -199,12 +304,12 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
 
   void _updateDonorProfile(BuildContext context) {
     final _formKey = GlobalKey<FormState>();
-    final availabilityController = TextEditingController(text: 'Available');
+    
+    // Remove the availability controller and dropdown since users shouldn't manually change this
 
     // Initial values for dropdowns
     String selectedState = '';
     String selectedDistrict = '';
-    bool isAvailable = true;
 
     // Lists for dropdown options - without "All" option
     final List<String> states = [
@@ -314,9 +419,6 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
           .then((userDoc) {
         if (userDoc.exists && userDoc.data() != null) {
           var userData = userDoc.data()!;
-          isAvailable = userData['isAvailable'] ?? true;
-          availabilityController.text =
-              isAvailable ? 'Available' : 'Not Available';
 
           // Set initial values for dropdowns if they exist in user data
           if (userData['state'] != null && userData['state'] != '') {
@@ -457,23 +559,66 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                   ),
                   SizedBox(height: 16),
 
-                  // Availability Status
-                  DropdownButtonFormField<String>(
-                    value: availabilityController.text,
-                    decoration: InputDecoration(
-                      labelText: 'Availability Status',
-                      border: OutlineInputBorder(),
+                  // Display current availability status (but don't allow changing it)
+                  if (_isDonor)
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.grey.shade100,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Availability Status',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF3D3366),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                _isAvailable ? Icons.check_circle : Icons.timer,
+                                color: _isAvailable ? Colors.green : Colors.orange,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                _isAvailable ? 'Available' : 'Not Available',
+                                style: TextStyle(
+                                  color: _isAvailable ? Colors.green : Colors.orange,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            _isAvailable 
+                                ? 'You are eligible to donate blood.'
+                                : _nextDonationDate != null 
+                                    ? 'You can donate again on: $_nextDonationDate'
+                                    : 'You are currently not eligible to donate.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Note: Availability is automatically updated based on your donation history and the required 100-day recovery period.',
+                            style: TextStyle(
+                              fontSize: 12, 
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    items: ['Available', 'Not Available'].map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      availabilityController.text = newValue!;
-                    },
-                  ),
                 ],
               ),
             ),
@@ -489,26 +634,23 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                   try {
                     // Print values being saved
                     print("Saving donor profile with values:");
-                    print(
-                        "Available: ${availabilityController.text == 'Available'}");
                     print("State: $selectedState");
                     print("District: $selectedDistrict");
 
                     // Prepare update data
                     Map<String, dynamic> updateData = {
-                      'isAvailable': availabilityController.text == 'Available',
-                      'isDonor':
-                          true, // Always set isDonor to true when profile is updated
+                      'isDonor': true, // Always set isDonor to true when profile is updated
                       'lastUpdated': FieldValue.serverTimestamp(),
                       // Location data from dropdowns
                       'state': selectedState,
                       'district': selectedDistrict,
-                      // Removed city field
                       // Make sure name and phone are saved too
                       'name': _userName, // Use current user name
-                      'phone': _auth.currentUser?.phoneNumber ??
-                          '', // Get phone if available
+                      'phone': _auth.currentUser?.phoneNumber ?? '', // Get phone if available
                     };
+
+                    // IMPORTANT: Do not update isAvailable field here
+                    // That should only be managed by the donation recording system
 
                     // Update user data in Firestore
                     await _firestore
@@ -516,9 +658,11 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                         .doc(_auth.currentUser!.uid)
                         .update(updateData);
 
-                    // Update local state
+                    // Update local state (but don't change availability)
                     setState(() {
                       _isDonor = true;
+                      // Don't update _isAvailable here
+                      _setInspirationalQuote(); // Update quote based on current status
                     });
 
                     Navigator.pop(context);
@@ -526,6 +670,9 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                       SnackBar(
                           content: Text('Donor profile updated successfully')),
                     );
+                    
+                    // Refresh user data
+                    _getUserData();
                   } catch (e) {
                     print("Error updating profile: $e");
                     ScaffoldMessenger.of(context).showSnackBar(

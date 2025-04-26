@@ -25,6 +25,7 @@ class FundraisingPage extends StatelessWidget {
                   fontSize: isTablet ? 26 : 20, 
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
+                  color: Colors.white,
                 ),
               ),
               Text(
@@ -32,6 +33,7 @@ class FundraisingPage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTablet ? 16 : 12,
                   fontWeight: FontWeight.w300,
+                  color: Colors.white,
                 ),
               ),
             ],

@@ -106,8 +106,8 @@ class _AdminFundraisingState extends State<AdminFundraising> {
                     formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate.toDate());
                   }
                   
-                  // Format amounts
-                  NumberFormat currencyFormat = NumberFormat.currency(symbol: '\$');
+                  // Format amounts with Rupee symbol instead of dollar
+                  NumberFormat currencyFormat = NumberFormat.currency(symbol: '₹');
                   String formattedTarget = currencyFormat.format(targetAmount);
                   String formattedRaised = currencyFormat.format(raisedAmount);
                   
@@ -223,8 +223,8 @@ class _AdminFundraisingState extends State<AdminFundraising> {
       formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate.toDate());
     }
     
-    // Format amounts
-    NumberFormat currencyFormat = NumberFormat.currency(symbol: '\$');
+    // Format amounts with Rupee symbol instead of dollar
+    NumberFormat currencyFormat = NumberFormat.currency(symbol: '₹');
     String formattedTarget = currencyFormat.format(targetAmount);
     String formattedRaised = currencyFormat.format(raisedAmount);
     
@@ -527,7 +527,7 @@ class _AdminFundraisingState extends State<AdminFundraising> {
                 TextField(
                   controller: targetAmountController,
                   decoration: InputDecoration(
-                    labelText: 'Target Amount (\$)',
+                    labelText: 'Target Amount (₹)',
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -649,7 +649,7 @@ class _AdminFundraisingState extends State<AdminFundraising> {
                 TextField(
                   controller: targetAmountController,
                   decoration: InputDecoration(
-                    labelText: 'Target Amount (\$)',
+                    labelText: 'Target Amount (₹)',
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -658,7 +658,7 @@ class _AdminFundraisingState extends State<AdminFundraising> {
                 TextField(
                   controller: raisedAmountController,
                   decoration: InputDecoration(
-                    labelText: 'Raised Amount (\$)',
+                    labelText: 'Raised Amount (₹)',
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.numberWithOptions(decimal: true),

@@ -13,8 +13,15 @@ class EventFundPage extends StatelessWidget {
     
     return Scaffold(
       appBar: AppBar(
-        title: Text('Fundraising Campaign'),
-        backgroundColor: primaryColor,
+        backgroundColor: const Color(0xFFD44C6D),
+        title: Text('Fundraising Campaign',
+                          textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,),
+                    
+        )
       ),
       body: StreamBuilder<QuerySnapshot>(
         // Changed 'campaigns' to 'fundraising_campaigns' to match your security rules
@@ -90,8 +97,8 @@ class EventFundPage extends StatelessWidget {
             formattedEndDate = DateFormat('MMMM dd, yyyy').format(endDate.toDate());
           }
           
-          // Format amounts
-          NumberFormat currencyFormat = NumberFormat.currency(symbol: '\$');
+          // Format amounts with Rupee symbol instead of dollar
+          NumberFormat currencyFormat = NumberFormat.currency(symbol: '₹');
           String formattedTarget = currencyFormat.format(targetAmount);
           String formattedRaised = currencyFormat.format(raisedAmount);
           
@@ -108,7 +115,7 @@ class EventFundPage extends StatelessWidget {
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: primaryColor,
+                      color: Color(0xFFD44C6D),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(16),
                         topRight: Radius.circular(16),
