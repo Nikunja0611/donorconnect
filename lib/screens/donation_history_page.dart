@@ -883,43 +883,70 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
     return DateTime.now(); // Fallback
   }
 
-  void _confirmDeleteDonation(String donationId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Delete Donation'),
-        content: Text('Are you sure you want to delete this donation record?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                Navigator.pop(context);
-                await _donationService.deleteDonation(donationId);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Donation deleted successfully')),
-                );
-                // Refresh the screen to recalculate eligibility
-                setState(() {});
-              } catch (e) {
-                print('Error deleting donation: $e');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error deleting donation: $e')),
-                );
+ void _confirmDeleteDonation(String donationId) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Delete Donation'),
+      content: Text('Are you sure you want to delete this donation record?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            try {
+              Navigator.pop(context);
+              await _donationService.deleteDonation(donationId);
+              
+              // Get the updated list of donations after deletion
+              final donations = await FirebaseFirestore.instance
+                  .collection('donations')
+                  .where('userId', isEqualTo: _donationService.getUserId())
+                  .orderBy('timestamp', descending: true)
+                  .get();
+              
+              // Find the most recent donation if any exists
+              if (donations.docs.isNotEmpty) {
+                var mostRecentDonation = donations.docs.first.data();
+                DateTime mostRecentDate = _getDonationDateTime(mostRecentDonation);
+                // Update availability status based on most recent donation
+                await _updateUserAvailabilityStatus(mostRecentDate);
+              } else {
+                // No donations left, reset user's availability status
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(_donationService.getUserId())
+                    .update({
+                  'isAvailable': true,
+                  'nextDonationDate': null,
+                  'lastDonationDate': null,
+                });
               }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: Text('Delete'),
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Donation deleted successfully')),
+              );
+              
+              // Refresh the screen
+              setState(() {});
+            } catch (e) {
+              print('Error deleting donation: $e');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error deleting donation: $e')),
+              );
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
           ),
-        ],
-      ),
-    );
-  }
+          child: Text('Delete'),
+        ),
+      ],
+    ),
+  );
+}
 
   void _showAddDonationDialog(BuildContext context) {
     final _formKey = GlobalKey<FormState>();

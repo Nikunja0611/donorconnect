@@ -26,7 +26,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
     _getUserData();
   }
 
-  void _getUserData() async {
+void _getUserData() async {
   setState(() {
     _isLoading = true;
   });
@@ -37,8 +37,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
 
     if (currentUser != null) {
       // Fetch user data from Firestore
-      DocumentSnapshot userDoc =
-          await _firestore.collection('users').doc(currentUser.uid).get();
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
 
       if (userDoc.exists && userDoc.data() != null) {
         var userData = userDoc.data() as Map<String, dynamic>;
@@ -46,14 +45,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
           _userName = userData['name'] ?? "User";
           _isDonor = userData['isDonor'] ?? false; // Get isDonor status
           
-          // Check if user manually set availability or if we need to calculate it
-          if (userData.containsKey('isAvailable')) {
-            _isAvailable = userData['isAvailable'] ?? true;
-          } else {
-            _isAvailable = true; // Default to available if not set
-          }
-          
-          // If this is a donor with donation history, check eligibility based on last donation
+          // Check if the user has donation history
           if (_isDonor && userData.containsKey('lastDonationDate') && userData['lastDonationDate'] != null) {
             Timestamp lastDonationTimestamp = userData['lastDonationDate'] as Timestamp;
             DateTime lastDonationDate = lastDonationTimestamp.toDate();
@@ -65,7 +57,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
               DateTime nextEligibleDate = lastDonationDate.add(Duration(days: 100));
               _nextDonationDate = DateFormat('dd/MM/yyyy').format(nextEligibleDate);
               
-              // Auto-update availability status for recent donors
+              // Set availability to false if they've donated within last 100 days
               _isAvailable = false;
               
               // Update this in Firestore to ensure consistency
@@ -74,12 +66,25 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                 'nextDonationDate': _nextDonationDate
               });
             } else {
-              // It's been more than 100 days since last donation, so no next donation date needed
+              // It's been more than 100 days since last donation
               _nextDonationDate = null;
+              
+              // Check if isAvailable was manually set, otherwise set to true since they can donate now
+              _isAvailable = userData['isAvailable'] ?? true;
             }
           } else {
-            // New donor or no donation history
+            // No donation history or last donation history was deleted
             _nextDonationDate = null;
+            // Allow user to set availability manually since there's no donation history
+            _isAvailable = userData['isAvailable'] ?? true; // Use stored value or default to true
+            
+            // If the history was deleted, we should update the Firestore document to ensure consistency
+            if (_isDonor) {
+              _firestore.collection('users').doc(currentUser.uid).update({
+                'lastDonationDate': null,
+                'nextDonationDate': null
+              });
+            }
           }
           
           // Set an inspirational quote based on availability
@@ -87,7 +92,11 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
         });
       } else {
         // This is a new user - document doesn't exist yet
-        // Just keep isDonor as false
+        setState(() {
+          _isDonor = false;
+          _isAvailable = true;
+          _nextDonationDate = null;
+        });
       }
     }
   } catch (e) {
@@ -98,8 +107,6 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
     });
   }
 }
-
-  
   // Set an inspirational quote based on user's donation status
   void _setInspirationalQuote() {
     List<String> availableQuotes = [
@@ -478,10 +485,13 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
           }
 
           // Check if user is eligible to change availability
-          // Eligible if: New donor (no lastDonationDate) OR last donation was more than 100 days ago
+          // Eligible if: 
+          // 1. New donor (no lastDonationDate) OR 
+          // 2. Last donation history was deleted OR
+          // 3. Last donation was more than 100 days ago
           if (!userData.containsKey('lastDonationDate') ||
               userData['lastDonationDate'] == null) {
-            // New donor case
+            // New donor or last donation history was deleted case
             isUserEligible = true;
           } else {
             // Check if last donation was more than 100 days ago
@@ -664,7 +674,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'You can update your availability as a new donor or if you haven\'t donated in the past 100 days.',
+                            'You can update your availability as a new donor, if your donation history was deleted, or if you haven\'t donated in the past 100 days.',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey.shade700,
