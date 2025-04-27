@@ -509,61 +509,69 @@ class ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _updateProfile(
-    String name,
-    String phone,
-    String address,  
-    String dob,
-    String bloodGroup,
-  ) async {
-    if (name.isEmpty || phone.isEmpty || address.isEmpty || dob.isEmpty || bloodGroup.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("All fields are required")),
-      );
-      return;
-    }
-    try {
-      setState(() => _isLoading = true);
-      
-      final authService = Provider.of<AuthService>(context, listen: false);
-      
-      final updatedData = {
-        'name': name,
-        'phone': phone,
-        'address': address,
-        'dob': dob,
-        'bloodGroup': bloodGroup,
-      };
-      
-      await authService.updateUserProfile(updatedData);
-      
-      // Update local data
-      setState(() {
-        _userData = {
-          ..._userData!,
-          ...updatedData,
-        };
-        _isLoading = false;
-      });
-      
-      Navigator.pop(context); // Close the dialog
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Profile updated successfully"),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      setState(() => _isLoading = false);
-      print('Error updating profile: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error updating profile: ${e.toString()}"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+  String name,
+  String phone,
+  String address,  
+  String dob,
+  String bloodGroup,
+) async {
+  if (name.isEmpty || phone.isEmpty || address.isEmpty || dob.isEmpty || bloodGroup.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("All fields are required")),
+    );
+    return;
   }
+  try {
+    setState(() => _isLoading = true);
+    
+    final authService = Provider.of<AuthService>(context, listen: false);
+    
+    // Make sure phone is explicitly included in updatedData
+    final updatedData = {
+      'name': name,
+      'phone': phone.trim(), // Trim to remove any accidental whitespace
+      'address': address,
+      'dob': dob,
+      'bloodGroup': bloodGroup,
+      'email': _userData!['email'], // Preserve the email
+    };
+    
+    // Print debug information
+    print('Before update - Phone: ${_userData!['phone']}');
+    print('Updating with phone: $phone');
+    
+    await authService.updateUserProfile(updatedData);
+    
+    // Make sure to reload the user data from the backend
+    final refreshedUserData = await authService.getCurrentUserData();
+    
+    // Update local data with the freshly loaded data
+    setState(() {
+      _userData = refreshedUserData;
+      _isLoading = false;
+    });
+    
+    print('After update - Phone: ${_userData!['phone']}');
+    
+    Navigator.pop(context); // Close the dialog
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Profile updated successfully"),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    setState(() => _isLoading = false);
+    print('Error updating profile: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Error updating profile: ${e.toString()}"),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
 
   void _showSignOutDialog() {
     showDialog(
