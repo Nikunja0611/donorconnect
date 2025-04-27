@@ -322,13 +322,13 @@ class AboutUsPage extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           GestureDetector(
-            onTap: () => _launchURL(context, 'mailto:info@raktpurak.org'),
+            onTap: () => _launchURL(context, 'mailto:raktapurak@gmail.com'),
             child: const Row(
               children: [
                 Icon(Icons.email, color: Color(0xFF1D3557)),
                 SizedBox(width: 8),
                 Text(
-                  "Email: info@raktpurak.org",
+                  "Email: raktpurak@gmail.com",
                   style: TextStyle(fontSize: 16),
                 ),
               ],
