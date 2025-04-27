@@ -27,43 +27,78 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
   }
 
   void _getUserData() async {
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    try {
-      // Get current user ID
-      User? currentUser = _auth.currentUser;
+  try {
+    // Get current user ID
+    User? currentUser = _auth.currentUser;
 
-      if (currentUser != null) {
-        // Fetch user data from Firestore
-        DocumentSnapshot userDoc =
-            await _firestore.collection('users').doc(currentUser.uid).get();
+    if (currentUser != null) {
+      // Fetch user data from Firestore
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(currentUser.uid).get();
 
-        if (userDoc.exists && userDoc.data() != null) {
-          var userData = userDoc.data() as Map<String, dynamic>;
-          setState(() {
-            _userName = userData['name'] ?? "User";
-            _isDonor = userData['isDonor'] ?? false; // Get isDonor status
-            _isAvailable = userData['isAvailable'] ?? true; // Get availability status
-            _nextDonationDate = userData['nextDonationDate']; // Get next donation date
+      if (userDoc.exists && userDoc.data() != null) {
+        var userData = userDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _userName = userData['name'] ?? "User";
+          _isDonor = userData['isDonor'] ?? false; // Get isDonor status
+          
+          // Check if user manually set availability or if we need to calculate it
+          if (userData.containsKey('isAvailable')) {
+            _isAvailable = userData['isAvailable'] ?? true;
+          } else {
+            _isAvailable = true; // Default to available if not set
+          }
+          
+          // If this is a donor with donation history, check eligibility based on last donation
+          if (_isDonor && userData.containsKey('lastDonationDate') && userData['lastDonationDate'] != null) {
+            Timestamp lastDonationTimestamp = userData['lastDonationDate'] as Timestamp;
+            DateTime lastDonationDate = lastDonationTimestamp.toDate();
+            DateTime now = DateTime.now();
+            int daysSinceLastDonation = now.difference(lastDonationDate).inDays;
             
-            // Set an inspirational quote based on availability
-            _setInspirationalQuote();
-          });
-        } else {
-          // This is a new user - document doesn't exist yet
-          // Just keep isDonor as false
-        }
+            // If last donation was less than 100 days ago, calculate next donation date
+            if (daysSinceLastDonation < 100) {
+              DateTime nextEligibleDate = lastDonationDate.add(Duration(days: 100));
+              _nextDonationDate = DateFormat('dd/MM/yyyy').format(nextEligibleDate);
+              
+              // Auto-update availability status for recent donors
+              _isAvailable = false;
+              
+              // Update this in Firestore to ensure consistency
+              _firestore.collection('users').doc(currentUser.uid).update({
+                'isAvailable': false,
+                'nextDonationDate': _nextDonationDate
+              });
+            } else {
+              // It's been more than 100 days since last donation, so no next donation date needed
+              _nextDonationDate = null;
+            }
+          } else {
+            // New donor or no donation history
+            _nextDonationDate = null;
+          }
+          
+          // Set an inspirational quote based on availability
+          _setInspirationalQuote();
+        });
+      } else {
+        // This is a new user - document doesn't exist yet
+        // Just keep isDonor as false
       }
-    } catch (e) {
-      print("Error fetching user data: $e");
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
+  } catch (e) {
+    print("Error fetching user data: $e");
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
   }
+}
+
   
   // Set an inspirational quote based on user's donation status
   void _setInspirationalQuote() {
@@ -73,28 +108,31 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
       "A single drop of your blood can make a huge difference in someone's life.",
       "Giving blood is giving the gift of life.",
     ];
-    
+
     List<String> waitingQuotes = [
       "Thank you for your donation! Your body is regenerating - take care of yourself.",
       "Heroes need rest too. Your next chance to save lives is coming soon!",
       "Your recent donation already made a difference. We'll see you again soon!",
       "Rest and recover - your body is preparing for your next heroic donation.",
     ];
-    
+
     if (_isDonor) {
       if (_isAvailable) {
         // Randomly select an available quote
-        _inspirationalQuote = availableQuotes[DateTime.now().millisecond % availableQuotes.length];
+        _inspirationalQuote = availableQuotes[
+            DateTime.now().millisecond % availableQuotes.length];
       } else {
         // Randomly select a waiting quote
-        _inspirationalQuote = waitingQuotes[DateTime.now().millisecond % waitingQuotes.length];
+        _inspirationalQuote =
+            waitingQuotes[DateTime.now().millisecond % waitingQuotes.length];
       }
     } else {
       // Default quote for new users
-      _inspirationalQuote = "Join our blood donation community and become a lifesaver!";
+      _inspirationalQuote =
+          "Join our blood donation community and become a lifesaver!";
     }
   }
-  
+
   // Helper method to parse date strings
   DateTime _parseDate(String dateStr) {
     try {
@@ -112,11 +150,11 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
     }
     return DateTime.now(); // Return current date as fallback
   }
-  
+
   // Calculate days until next eligible donation
   int _getDaysRemaining() {
     if (_nextDonationDate == null) return 0;
-    
+
     DateTime nextDate = _parseDate(_nextDonationDate!);
     DateTime today = DateTime.now();
     return nextDate.difference(today).inDays;
@@ -154,7 +192,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                     ),
                   ),
                   SizedBox(height: 10),
-                  
+
                   // Inspirational quote container
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -163,7 +201,8 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Color(0xFFC14465).withOpacity(0.3)),
+                        border: Border.all(
+                            color: Color(0xFFC14465).withOpacity(0.3)),
                       ),
                       child: Text(
                         _inspirationalQuote,
@@ -176,9 +215,9 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 10),
-                  
+
                   // Show donation status for donors
                   if (_isDonor && !_isAvailable && _nextDonationDate != null)
                     Padding(
@@ -192,7 +231,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                         ),
                       ),
                     ),
-                  
+
                   if (!_isDonor)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -304,12 +343,14 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
 
   void _updateDonorProfile(BuildContext context) {
     final _formKey = GlobalKey<FormState>();
-    
-    // Remove the availability controller and dropdown since users shouldn't manually change this
 
     // Initial values for dropdowns
     String selectedState = '';
     String selectedDistrict = '';
+
+    // Add a boolean for availability status that can be modified if eligible
+    bool isUserEligible = false; // Flag to determine if user can change status
+    bool currentAvailability = _isAvailable; // Current availability status
 
     // Lists for dropdown options - without "All" option
     final List<String> states = [
@@ -410,7 +451,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
       'Punjab': ['Amritsar', 'Ludhiana', 'Jalandhar', 'Patiala']
     };
 
-    // Get current user data to pre-fill the form
+    // Get current user data to pre-fill the form and check eligibility
     if (_auth.currentUser != null) {
       _firestore
           .collection('users')
@@ -435,6 +476,26 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
             selectedDistrict =
                 districts[selectedState]![0]; // Default to first district
           }
+
+          // Check if user is eligible to change availability
+          // Eligible if: New donor (no lastDonationDate) OR last donation was more than 100 days ago
+          if (!userData.containsKey('lastDonationDate') ||
+              userData['lastDonationDate'] == null) {
+            // New donor case
+            isUserEligible = true;
+          } else {
+            // Check if last donation was more than 100 days ago
+            Timestamp lastDonationTimestamp =
+                userData['lastDonationDate'] as Timestamp;
+            DateTime lastDonationDate = lastDonationTimestamp.toDate();
+            DateTime now = DateTime.now();
+            int daysSinceLastDonation = now.difference(lastDonationDate).inDays;
+
+            isUserEligible = daysSinceLastDonation >= 100;
+          }
+        } else {
+          // New user, they are eligible
+          isUserEligible = true;
         }
       });
     }
@@ -559,8 +620,63 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                   ),
                   SizedBox(height: 16),
 
+                  // Availability switch - only show if user is eligible to change it
+                  if (isUserEligible)
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.grey.shade50,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Availability Status',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF3D3366),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          SwitchListTile(
+                            title: Text(
+                              currentAvailability
+                                  ? 'Available'
+                                  : 'Not Available',
+                              style: TextStyle(
+                                color: currentAvailability
+                                    ? Colors.green
+                                    : Colors.orange,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            value: currentAvailability,
+                            activeColor: Colors.green,
+                            onChanged: (bool value) {
+                              setState(() {
+                                currentAvailability = value;
+                              });
+                            },
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'You can update your availability as a new donor or if you haven\'t donated in the past 100 days.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade700,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   // Display current availability status (but don't allow changing it)
-                  if (_isDonor)
+                  if (_isDonor && !isUserEligible)
                     Container(
                       padding: EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -584,13 +700,16 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                             children: [
                               Icon(
                                 _isAvailable ? Icons.check_circle : Icons.timer,
-                                color: _isAvailable ? Colors.green : Colors.orange,
+                                color:
+                                    _isAvailable ? Colors.green : Colors.orange,
                               ),
                               SizedBox(width: 8),
                               Text(
                                 _isAvailable ? 'Available' : 'Not Available',
                                 style: TextStyle(
-                                  color: _isAvailable ? Colors.green : Colors.orange,
+                                  color: _isAvailable
+                                      ? Colors.green
+                                      : Colors.orange,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -598,9 +717,9 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            _isAvailable 
+                            _isAvailable
                                 ? 'You are eligible to donate blood.'
-                                : _nextDonationDate != null 
+                                : _nextDonationDate != null
                                     ? 'You can donate again on: $_nextDonationDate'
                                     : 'You are currently not eligible to donate.',
                             style: TextStyle(
@@ -612,7 +731,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                           Text(
                             'Note: Availability is automatically updated based on your donation history and the required 100-day recovery period.',
                             style: TextStyle(
-                              fontSize: 12, 
+                              fontSize: 12,
                               color: Colors.grey.shade700,
                             ),
                           ),
@@ -636,21 +755,28 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                     print("Saving donor profile with values:");
                     print("State: $selectedState");
                     print("District: $selectedDistrict");
+                    if (isUserEligible) {
+                      print("Availability: $currentAvailability");
+                    }
 
                     // Prepare update data
                     Map<String, dynamic> updateData = {
-                      'isDonor': true, // Always set isDonor to true when profile is updated
+                      'isDonor':
+                          true, // Always set isDonor to true when profile is updated
                       'lastUpdated': FieldValue.serverTimestamp(),
                       // Location data from dropdowns
                       'state': selectedState,
                       'district': selectedDistrict,
                       // Make sure name and phone are saved too
                       'name': _userName, // Use current user name
-                      'phone': _auth.currentUser?.phoneNumber ?? '', // Get phone if available
+                      'phone': _auth.currentUser?.phoneNumber ??
+                          '', // Get phone if available
                     };
 
-                    // IMPORTANT: Do not update isAvailable field here
-                    // That should only be managed by the donation recording system
+                    // Only update isAvailable field if user is eligible to change it
+                    if (isUserEligible) {
+                      updateData['isAvailable'] = currentAvailability;
+                    }
 
                     // Update user data in Firestore
                     await _firestore
@@ -658,10 +784,12 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                         .doc(_auth.currentUser!.uid)
                         .update(updateData);
 
-                    // Update local state (but don't change availability)
+                    // Update local state
                     setState(() {
                       _isDonor = true;
-                      // Don't update _isAvailable here
+                      if (isUserEligible) {
+                        _isAvailable = currentAvailability;
+                      }
                       _setInspirationalQuote(); // Update quote based on current status
                     });
 
@@ -670,7 +798,7 @@ class _WelcomeUserPageState extends State<WelcomeUserPage> {
                       SnackBar(
                           content: Text('Donor profile updated successfully')),
                     );
-                    
+
                     // Refresh user data
                     _getUserData();
                   } catch (e) {
