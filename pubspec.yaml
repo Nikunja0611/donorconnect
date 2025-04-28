@@ -29,6 +29,7 @@ dependencies:
   syncfusion_flutter_xlsio: ^22.2.10
   open_file: ^3.3.3
   qr_flutter: ^4.0.0
+  rename: ^3.0.2
 
 dev_dependencies:
   flutter_test:
