@@ -12,6 +12,7 @@ import 'screens/home_screen.dart';
 import 'screens/medical_help_page.dart';
 import 'screens/blood_bank_page.dart';
 import 'screens/fundraising_page.dart';
+import 'screens/blood_donation_request.dart';
 import 'screens/profile_page.dart';
 import 'screens/about_us_page.dart';
 import 'screens/donor_connect.dart';
@@ -84,6 +85,7 @@ class MyApp extends StatelessWidget {
           '/medical_help_page': (context) => MedicalHelpPage(),
           '/blood_bank_page': (context) => BloodBankPage(),
           '/fundraising_page': (context) => FundraisingPage(),
+          '/blood_donation_request': (context) => BloodDonationRequestPage(),
           '/profile_page': (context) => ProfilePage(),
           '/about_us_page': (context) => AboutUsPage(),
           '/achievement_page':(context) => AchievementPage(),

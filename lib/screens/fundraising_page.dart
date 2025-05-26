@@ -16,6 +16,7 @@ class FundraisingPage extends StatelessWidget {
           backgroundColor: const Color(0xFFD44C6D),
           centerTitle: true,
           elevation: 4.0,
+          automaticallyImplyLeading: false, // Remove back button
           title: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -165,56 +166,148 @@ class FundraisingPage extends StatelessWidget {
               ),
               
               const SizedBox(height: 40),
+              
+              // Disclaimer section
+              Container(
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.red[200]!, width: 1),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.red[700], size: isTablet ? 28 : 24),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Disclaimer',
+                          style: TextStyle(
+                            fontSize: isTablet ? 22 : 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Blood Donation is 100% Free of Charge',
+                      style: TextStyle(
+                        fontSize: isTablet ? 18 : 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red[800],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'This is a voluntary blood donation (sewaa) initiative. No money is involved at any stage — neither for the donor nor the recipient. The entire process is carried out purely for humanitarian and charitable purposes. We strictly discourage and do not support any form of blood selling, buying, or compensation.\n\nRaktpurak Charitable Foundation operates this initiative solely as a service to society, in alignment with ethical and medical standards.',
+                      style: TextStyle(
+                        fontSize: isTablet ? 16 : 14,
+                        height: 1.6,
+                        color: Colors.red[800],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 30),
+              
+              // Blood donation registration button
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/blood_donation_request');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 24.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.3),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                    border: Border.all(color: const Color(0xFFD44C6D), width: 1.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.app_registration, color: const Color(0xFFD44C6D), size: isTablet ? 22 : 20),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(
+                          'Register With Us For Blood Donation Camps/Drives In Your Society',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.purple[900],
+                            fontSize: isTablet ? 16 : 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded, color: Color(0xFFD44C6D)),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 40),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        height: 60, // Fixed height to prevent overflow
-        child: BottomNavigationBar(
-          currentIndex: 3,
-          selectedItemColor: Colors.pink[700],
-          unselectedItemColor: Colors.pink[300],
-          type: BottomNavigationBarType.fixed,
-          onTap: (index) {
-            switch (index) {
-              case 0:
-                Navigator.pushReplacementNamed(context, '/');
-                break;
-              case 1:
-                Navigator.pushReplacementNamed(context, '/medical_help_page');
-                break;
-              case 2:
-                Navigator.pushReplacementNamed(context, '/blood_bank_page');
-                break;
-              case 3:
-                // Already on fundraising page
-                break;
-              case 4:
-                Navigator.pushReplacementNamed(context, '/profile_page');
-                break;
-            }
-          },
-          items: [
-            const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.medical_services), 
-              label: isTablet ? 'Medical Help' : 'Medical'
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.opacity), 
-              label: 'Blood Bank'
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.volunteer_activism), 
-              label: isTablet ? 'Fundraising' : 'Fundraising'
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.person), 
-              label: 'Profile'
-            ),
-          ],
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 3,
+        selectedItemColor: Colors.pink[700],
+        unselectedItemColor: Colors.pink[300],
+        type: BottomNavigationBarType.fixed,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/');
+              break;
+            case 1:
+              Navigator.pushReplacementNamed(context, '/medical_help_page');
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/blood_bank_page');
+              break;
+            case 3:
+              // Already on fundraising page
+              break;
+            case 4:
+              Navigator.pushReplacementNamed(context, '/profile_page');
+              break;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.medical_services), 
+            label: 'Medical Help'
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.opacity), 
+            label: 'Blood Bank'
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.volunteer_activism), 
+            label: 'Fundraising'
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person), 
+            label: 'Profile'
+          ),
+        ],
       ),
     );
   }

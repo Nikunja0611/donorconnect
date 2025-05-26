@@ -86,6 +86,7 @@ class ProfilePageState extends State<ProfilePage> {
                     fontWeight: FontWeight.bold,
                     height: 1.1,),),
         centerTitle: true,
+        automaticallyImplyLeading: false, // This removes the back button
         actions: [
           IconButton(
             icon: Icon(Icons.logout),
@@ -576,7 +577,7 @@ class ProfilePageState extends State<ProfilePage> {
   void _showSignOutDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog(  
         title: Text('Sign Out'),
         content: Text('Are you sure you want to sign out?'),
         actions: [

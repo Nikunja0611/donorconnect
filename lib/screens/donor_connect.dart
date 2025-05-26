@@ -284,82 +284,120 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
   }
 
   void _showReportDialog(BuildContext context, Donor donor) {
-  final TextEditingController _reportController = TextEditingController();
+    final TextEditingController _reportController = TextEditingController();
 
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('Report Donor'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Please provide a reason for reporting this donor:'),
-          SizedBox(height: 16),
-          TextField(
-            controller: _reportController,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Enter reason for report',
-              border: OutlineInputBorder(),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Report Donor'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Please provide a reason for reporting this donor:'),
+            SizedBox(height: 16),
+            TextField(
+              controller: _reportController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Enter reason for report',
+                border: OutlineInputBorder(),
+              ),
             ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFC14465),
+            ),
+            onPressed: () {
+              // Get current user ID
+              final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+              
+              if (currentUserId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('You must be logged in to report a donor'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                Navigator.pop(context);
+                return;
+              }
+              
+              // Submit report to Firestore with reporter ID
+              _firestore.collection('reports').add({
+                'donorId': donor.id,
+                'donorName': donor.name,
+                'reportReason': _reportController.text,
+                'reporterId': currentUserId,
+                'reportedAt': FieldValue.serverTimestamp(),
+              }).then((_) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Report submitted successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }).catchError((error) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to submit report: $error'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              });
+            },
+            child: Text('Submit'),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Cancel'),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFFC14465),
-          ),
-          onPressed: () {
-            // Get current user ID
-            final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-            
-            if (currentUserId == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('You must be logged in to report a donor'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              Navigator.pop(context);
-              return;
-            }
-            
-            // Submit report to Firestore with reporter ID
-            _firestore.collection('reports').add({
-              'donorId': donor.id,
-              'donorName': donor.name,
-              'reportReason': _reportController.text,
-              'reporterId': currentUserId,
-              'reportedAt': FieldValue.serverTimestamp(),
-            }).then((_) {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Report submitted successfully'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }).catchError((error) {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Failed to submit report: $error'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            });
-          },
-          child: Text('Submit'),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
+
+  // Fixed navigation method to ensure consistent behavior
+  void _navigateToPage(int index) {
+    switch (index) {
+      case 0: // Home
+        // Clear entire navigation stack and go to home
+        Navigator.pushNamedAndRemoveUntil(
+          context, 
+          '/', 
+          (Route<dynamic> route) => false,
+        );
+        break;
+      case 1: // Medical Help
+        Navigator.pushNamedAndRemoveUntil(
+          context, 
+          '/medical_help_page', 
+          (Route<dynamic> route) => false,
+        );
+        break;
+      case 2: // BloodBank - Current page, do nothing
+        break;
+      case 3: // Fundraising
+        Navigator.pushNamedAndRemoveUntil(
+          context, 
+          '/fundraising_page', 
+          (Route<dynamic> route) => false,
+        );
+        break;
+      case 4: // Profile
+        Navigator.pushNamedAndRemoveUntil(
+          context, 
+          '/profile_page', 
+          (Route<dynamic> route) => false,
+        );
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -370,6 +408,8 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
         ),
         backgroundColor: Color(0xFFC14465),
         elevation: 0,
+        // Ensure no back button is shown
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
@@ -506,29 +546,11 @@ class _DonorConnectPageState extends State<DonorConnectPage> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2, // Fundraising selected
+        currentIndex: 2, // BloodBank selected
         selectedItemColor: Colors.pink[700],
         unselectedItemColor: Colors.pink[300],
         type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/medical_help_page');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/blood_bank_page');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/fundraising_page');
-              break;
-            case 4:
-              Navigator.pushReplacementNamed(context, '/profile_page');
-              break;
-          }
-        },
+        onTap: _navigateToPage, // Use the new navigation method
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(

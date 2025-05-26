@@ -218,6 +218,25 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
+                    SizedBox(height: 30),
+                    // Disclaimer
+                    Container(
+                      padding: EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Color(0xFFD95373).withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        "Raktpurak Charitable Foundation runs a completely free, voluntary blood donation initiative with no money involved, dedicated solely to humanitarian service.",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.black87,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   ],
                 ),
               ),

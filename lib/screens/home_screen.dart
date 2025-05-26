@@ -24,7 +24,7 @@ class _HomePageState extends State<HomePage> {
 
   final List<Map<String, dynamic>> featuredEvents = [
     {
-      'title': 'Blood bank initiative',
+      'title': 'Blood donation camp initiative',
       'image': 'assets/images/feature_1.jpeg',
       'date': 'June 14, 2025',
       'location': 'Lucknow'
@@ -73,7 +73,6 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadUserData() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     final userData = await authService.getCurrentUserData();
-    
     if (userData != null && userData.containsKey('name')) {
       setState(() {
         userName = userData['name'];
@@ -91,10 +90,10 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _currentIndex = index;
     });
-
+    
     switch (index) {
       case 0:
-        Navigator.pushNamed(context, '/');
+        // Stay on home screen - do nothing
         break;
       case 1:
         Navigator.pushNamed(context, '/medical_help_page');
@@ -116,7 +115,7 @@ class _HomePageState extends State<HomePage> {
     // Get the screen size for responsive design
     final screenSize = MediaQuery.of(context).size;
     final textScaleFactor = MediaQuery.of(context).textScaleFactor;
-    
+
     // Calculate responsive font sizes
     final double titleFontSize = screenSize.width < 360 ? 20 : (screenSize.width < 400 ? 22 : 24);
     final double subtitleFontSize = 16 * (screenSize.width / 400).clamp(0.8, 1.2);
@@ -129,6 +128,7 @@ class _HomePageState extends State<HomePage> {
         child: AppBar(
           backgroundColor: const Color(0xFFD44C6D),
           centerTitle: true,
+          automaticallyImplyLeading: false, // This removes the back button
           title: Column(
             children: [
               FittedBox(
@@ -148,7 +148,7 @@ class _HomePageState extends State<HomePage> {
                 Text(
                   'Welcome, $userName',
                   style: TextStyle(
-                    color: Colors.white, 
+                    color: Colors.white,
                     fontSize: subtitleFontSize,
                   ),
                 ),
@@ -203,7 +203,7 @@ class _HomePageState extends State<HomePage> {
                         RichText(
                           text: TextSpan(
                             style: TextStyle(
-                              color: Colors.grey[800], 
+                              color: Colors.grey[800],
                               fontSize: bodyFontSize,
                             ),
                             children: const [
@@ -241,7 +241,7 @@ class _HomePageState extends State<HomePage> {
                   Text(
                     'A Peek into Our Motive',
                     style: TextStyle(
-                      color: Colors.deepPurple, 
+                      color: Colors.deepPurple,
                       fontSize: subtitleFontSize,
                       fontWeight: FontWeight.w600,
                     ),
@@ -305,93 +305,104 @@ class _HomePageState extends State<HomePage> {
                   Text(
                     'Featured Events',
                     style: TextStyle(
-                      color: Colors.deepPurple, 
+                      color: Colors.deepPurple,
                       fontSize: subtitleFontSize,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  ImageSlideshow(
-                    width: double.infinity,
-                    height: screenSize.width * 0.4, // Responsive height
-                    initialPage: 0,
-                    indicatorColor: Colors.pink,
-                    indicatorBackgroundColor: Colors.grey,
-                    onPageChanged: (value) {},
-                    autoPlayInterval: 6000,
-                    isLoop: true,
-                    children: featuredEvents.map((event) {
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.2),
-                              spreadRadius: 1,
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(12),
-                                bottomLeft: Radius.circular(12),
+                  // Fixed: Added minimum height and constrained height
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: screenSize.width * 0.4,
+                      maxHeight: screenSize.width * 0.45, // Added maximum height
+                    ),
+                    child: ImageSlideshow(
+                      width: double.infinity,
+                      height: screenSize.width * 0.4, // Responsive height
+                      initialPage: 0,
+                      indicatorColor: Colors.pink,
+                      indicatorBackgroundColor: Colors.grey,
+                      onPageChanged: (value) {},
+                      autoPlayInterval: 6000,
+                      isLoop: true,
+                      children: featuredEvents.map((event) {
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                spreadRadius: 1,
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
                               ),
-                              child: Image.asset(
-                                event['image'],
-                                height: screenSize.width * 0.4,
-                                width: screenSize.width * 0.3,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      event['title'],
-                                      style: TextStyle(
-                                        color: Colors.pink[400],
-                                        fontSize: subtitleFontSize,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      event['date'],
-                                      style: TextStyle(
-                                        fontSize: smallFontSize,
-                                        color: Colors.grey[700],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      event['location'],
-                                      style: TextStyle(fontSize: smallFontSize),
-                                    ),
-                                  ],
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  bottomLeft: Radius.circular(12),
+                                ),
+                                child: Image.asset(
+                                  event['image'],
+                                  height: screenSize.width * 0.4,
+                                  width: screenSize.width * 0.3,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min, // Fixed: Added mainAxisSize
+                                    children: [
+                                      Flexible( // Fixed: Wrapped with Flexible
+                                        child: Text(
+                                          event['title'],
+                                          style: TextStyle(
+                                            color: Colors.pink[400],
+                                            fontSize: subtitleFontSize,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4), // Reduced height
+                                      Text(
+                                        event['date'],
+                                        style: TextStyle(
+                                          fontSize: smallFontSize,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2), // Reduced height
+                                      Text(
+                                        event['location'],
+                                        style: TextStyle(fontSize: smallFontSize),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ],
               ),
             ),
 
-
-            // Added Achievements Section from first home screen
+            // Achievements Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
               child: Column(
@@ -403,14 +414,13 @@ class _HomePageState extends State<HomePage> {
                       Text(
                         'Our Achievements',
                         style: TextStyle(
-                          color: Colors.deepPurple, 
+                          color: Colors.deepPurple,
                           fontSize: subtitleFontSize,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       TextButton(
                         onPressed: () {
-                          // Navigate to detailed achievements page
                           Navigator.pushNamed(context, '/achievement_page');
                         },
                         child: Text(
@@ -431,10 +441,10 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            
-            // Added Achievements Cards from first home screen
+
+            // Fixed: Achievements Cards with better height management
             SizedBox(
-              height: screenSize.width * 0.6, // Responsive height
+              height: screenSize.width * 0.65, // Increased height slightly
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: achievements.length,
@@ -442,7 +452,7 @@ class _HomePageState extends State<HomePage> {
                 itemBuilder: (context, index) {
                   final achievement = achievements[index];
                   return Container(
-                    width: screenSize.width * 0.5, // Responsive width
+                    width: screenSize.width * 0.5,
                     margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -467,57 +477,64 @@ class _HomePageState extends State<HomePage> {
                           ),
                           child: Image.asset(
                             achievement['image'],
-                            height: screenSize.width * 0.28, // Responsive height
+                            height: screenSize.width * 0.25, // Reduced height slightly
                             width: double.infinity,
                             fit: BoxFit.cover,
                           ),
                         ),
-                        // Achievement details
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                achievement['title'],
-                                style: TextStyle(
-                                  color: Colors.pink[700],
-                                  fontSize: bodyFontSize,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                achievement['description'],
-                                style: TextStyle(
-                                  fontSize: smallFontSize,
-                                  color: Colors.grey[800],
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.pink[50],
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  achievement['year'],
-                                  style: TextStyle(
-                                    fontSize: smallFontSize,
-                                    color: Colors.pink[700],
-                                    fontWeight: FontWeight.w500,
+                        // Achievement details with Expanded to prevent overflow
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min, // Fixed: Added mainAxisSize
+                              children: [
+                                Flexible( // Fixed: Wrapped title with Flexible
+                                  child: Text(
+                                    achievement['title'],
+                                    style: TextStyle(
+                                      color: Colors.pink[700],
+                                      fontSize: bodyFontSize,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 4),
+                                Flexible( // Fixed: Wrapped description with Flexible
+                                  child: Text(
+                                    achievement['description'],
+                                    style: TextStyle(
+                                      fontSize: smallFontSize,
+                                      color: Colors.grey[800],
+                                    ),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.pink[50],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    achievement['year'],
+                                    style: TextStyle(
+                                      fontSize: smallFontSize,
+                                      color: Colors.pink[700],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -526,9 +543,9 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
             ),
-            
+
             // Bottom padding
-            const SizedBox(height: 16),
+            const SizedBox(height: 20), // Increased bottom padding
           ],
         ),
       ),

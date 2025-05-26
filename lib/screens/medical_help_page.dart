@@ -12,14 +12,11 @@ class MedicalHelpPage extends StatefulWidget {
 class _MedicalHelpPageState extends State<MedicalHelpPage> {
   DateTime selectedDate = DateTime.now();
   List<String> selectedEquipments = [];
-
   final List<String> equipments = [
     'Bipap Machines', 'Oxygen Concentrator',
     'Oxygen Cylinder', 'Patient Beds', 'Wheel Chairs',
   ];
-
   int _selectedIndex = 1;
-
   final Color primaryColor = const Color(0xFFC14465);
   final Color accentColor = const Color(0xFF3D3366);
   final Color backgroundColor = const Color(0xFFFCF3F9);
@@ -48,16 +45,13 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
       _showSnackbar('You must be signed in to submit a request.', Colors.red);
       return;
     }
-
     if (selectedEquipments.isEmpty) {
       _showSnackbar('Please select at least one equipment.', Colors.red);
       return;
     }
-
     try {
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       final userName = userDoc.data()?['name'] ?? 'Unknown';
-
       await FirebaseFirestore.instance.collection('medical_help').add({
         'requesterId': user.uid,
         'requesterName': userName,
@@ -66,9 +60,7 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
         'status': 'Pending',
         'timestamp': FieldValue.serverTimestamp(),
       });
-
       _showSnackbar('Request submitted successfully!', primaryColor);
-
       setState(() {
         selectedEquipments.clear();
         selectedDate = DateTime.now();
@@ -94,7 +86,7 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
         Navigator.pushReplacementNamed(context, '/');
         break;
       case 1:
-        Navigator.pushReplacementNamed(context, '/medical_help_page');
+        // Stay on medical help page - do nothing
         break;
       case 2:
         Navigator.pushReplacementNamed(context, '/blood_bank_page');
@@ -111,7 +103,6 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
-
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
@@ -139,15 +130,18 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.pink[700],
         unselectedItemColor: Colors.pink[300],
+        type: BottomNavigationBarType.fixed,
+        onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.local_hospital), label: 'Medical'),
-          BottomNavigationBarItem(icon: Icon(Icons.bloodtype), label: 'Blood Bank'),
-          BottomNavigationBarItem(icon: Icon(Icons.volunteer_activism), label: 'Fundraiser'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.medical_services), label: 'Medical Help'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.opacity), label: 'Blood Bank'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.volunteer_activism), label: 'Fundraising'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
@@ -225,7 +219,6 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
                   String status = data['status'] ?? 'Pending';
                   Timestamp? ts = data['requestedDate'];
                   String date = ts != null ? '${ts.toDate().day}-${ts.toDate().month}-${ts.toDate().year}' : 'N/A';
-                  
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
@@ -318,69 +311,69 @@ class _MedicalHelpPageState extends State<MedicalHelpPage> {
   }
 
   Widget _buildEquipmentGrid(double width) {
-  return Column(
-    children: equipments.map((equipment) {
-      final isSelected = selectedEquipments.contains(equipment);
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: InkWell(
-          onTap: () {
-            setState(() {
-              if (isSelected) {
-                selectedEquipments.remove(equipment);
-              } else {
-                selectedEquipments.add(equipment);
-              }
-            });
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: isSelected ? primaryColor.withOpacity(0.1) : Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isSelected ? primaryColor : Colors.grey.shade300,
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Checkbox(
-                  value: isSelected,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      if (value == true) {
-                        selectedEquipments.add(equipment);
-                      } else {
-                        selectedEquipments.remove(equipment);
-                      }
-                    });
-                  },
-                  activeColor: primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+    return Column(
+      children: equipments.map((equipment) {
+        final isSelected = selectedEquipments.contains(equipment);
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                if (isSelected) {
+                  selectedEquipments.remove(equipment);
+                } else {
+                  selectedEquipments.add(equipment);
+                }
+              });
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: isSelected ? primaryColor.withOpacity(0.1) : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isSelected ? primaryColor : Colors.grey.shade300,
+                  width: 1,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    equipment,
-                    style: TextStyle(
-                      fontSize: 16,  // Increased font size
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                      color: isSelected ? primaryColor : Colors.black87,
+              ),
+              child: Row(
+                children: [
+                  Checkbox(
+                    value: isSelected,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        if (value == true) {
+                          selectedEquipments.add(equipment);
+                        } else {
+                          selectedEquipments.remove(equipment);
+                        }
+                      });
+                    },
+                    activeColor: primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      equipment,
+                      style: TextStyle(
+                        fontSize: 16, // Increased font size
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: isSelected ? primaryColor : Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    }).toList(),
-  );
-}
+        );
+      }).toList(),
+    );
+  }
 
   Widget _buildCard({required Widget child}) {
     return Container(
