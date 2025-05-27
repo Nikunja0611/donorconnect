@@ -74,6 +74,128 @@ class FundraisingPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               
+              // QR Code section
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      'Donate for a noble cause if you like our seva',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: isTablet ? 22 : 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFD44C6D),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Image.asset(
+                        'assets/images/qr_code_rcf.jpeg',
+                        width: isTablet ? 250 : 200,
+                        height: isTablet ? 250 : 200,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Scan to contribute to our charitable initiatives!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: isTablet ? 16 : 14,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Call to action button - moved to top
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/event_fund_page');
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [const Color(0xFFD44C6D), Colors.pink[400]!],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFD44C6D).withOpacity(0.4),
+                        spreadRadius: 1,
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.campaign, color: Colors.white, size: isTablet ? 24 : 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Raise Funds For A Cause',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isTablet ? 18 : 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 30),
+              
+              // Section divider
+              Container(
+                height: 2,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      const Color(0xFFD44C6D).withOpacity(0.5),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Section title for initiatives
+              Text(
+                'Our Initiatives',
+                style: TextStyle(
+                  fontSize: isTablet ? 24 : 20,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFD44C6D),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
               // Roti Bank section
               _enhancedInfoSection(
                 context: context,
@@ -122,47 +244,6 @@ class FundraisingPage extends StatelessWidget {
                     'no one sleeps hungry tonight.',
                 imageLeft: true,
                 isTablet: isTablet,
-              ),
-              
-              const SizedBox(height: 30),
-              
-              // Call to action button
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(context, '/event_fund_page');
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
-                        spreadRadius: 1,
-                        blurRadius: 5,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                    border: Border.all(color: const Color(0xFFD44C6D), width: 1.5),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Raise Funds For A Cause',
-                        style: TextStyle(
-                          color: Colors.purple[900],
-                          fontSize: isTablet ? 18 : 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.arrow_forward_rounded, color: Color(0xFFD44C6D)),
-                    ],
-                  ),
-                ),
               ),
               
               const SizedBox(height: 40),
